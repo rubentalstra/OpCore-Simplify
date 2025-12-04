@@ -164,7 +164,11 @@ class ResourceFetcher:
                 progress_changed = progress != last_progress
                 mb_boundary_crossed = current_mb > last_mb_printed
                 
-                if progress_changed and (mb_boundary_crossed or not total_size):
+                # For known-size downloads: print every MB
+                # For unknown-size downloads: print every MB or when progress string changes
+                should_print = progress_changed and mb_boundary_crossed
+                
+                if should_print:
                     print(progress)
                     last_progress = progress
                     last_mb_printed = current_mb
