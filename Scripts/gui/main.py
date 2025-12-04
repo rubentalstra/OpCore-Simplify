@@ -374,9 +374,16 @@ class OpCoreGUI(FluentWindow):
     def _handle_gui_prompt_on_main_thread(self, prompt_type, prompt_text, options, holder_tuple):
         """Slot that handles GUI prompts on the main thread"""
         result_holder, event = holder_tuple
-        result = self.handle_gui_prompt(prompt_type, prompt_text, options)
-        result_holder['result'] = result
-        event.set()  # Signal that result is ready
+        try:
+            result = self.handle_gui_prompt(prompt_type, prompt_text, options)
+            result_holder['result'] = result
+        except Exception as e:
+            # Log error but ensure event is set to prevent deadlock
+            print(f"Error in GUI prompt handler: {e}")
+            result_holder['result'] = None
+        finally:
+            # Always signal completion to prevent deadlock
+            event.set()
 
     def load_hardware_report(self, path, data=None):
         """Load hardware report and update UI"""
