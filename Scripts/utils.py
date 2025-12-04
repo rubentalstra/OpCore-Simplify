@@ -15,6 +15,9 @@ class Utils:
         self.script_name = script_name
         self.gui_handler = None  # GUI handler object for direct dialog access
         self.gui_log_callback = None  # Callback for logging to build log
+        self.gui_callback = None  # Callback for GUI prompts (backward compatibility)
+        self.gui_progress_callback = None  # Callback for updating build progress in GUI
+        self.gui_gathering_progress_callback = None  # Callback for updating gathering progress in GUI
 
     # ==================== Dialog Methods ====================
     # These methods provide a clean interface for showing dialogs
