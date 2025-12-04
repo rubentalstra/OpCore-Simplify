@@ -444,15 +444,6 @@ class OpCoreGUI(FluentWindow):
             self.customized_hardware, self.smbios_model_text, version,
             self.ocpe.ac.patches, self.ocpe.k
         )
-        
-        # Pre-select audio codec layout if AppleALC is enabled
-        # This sets a default value that will be shown in the dialog during build
-        from Scripts.datasets import kext_data
-        applealc_idx = kext_data.kext_index_by_name.get("AppleALC")
-        if applealc_idx is not None and self.ocpe.k.kexts[applealc_idx].checked:
-            # Pre-select codec layout (this will show the dialog and store the selection)
-            # The dialog will appear again during build, but with this as the default
-            self.ocpe.co.select_audio_codec_layout(self.customized_hardware)
 
         # Update disabled devices display
         if self.disabled_devices:
