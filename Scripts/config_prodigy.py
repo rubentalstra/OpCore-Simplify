@@ -268,6 +268,10 @@ class ConfigProdigy:
             return None, None
         
         available_layouts = codec_layouts.data.get(codec_id)
+        
+        # Check if there are any layouts available for this codec
+        if not available_layouts:
+            return None, None
 
         recommended_authors = ("Mirone", "InsanelyDeepak", "Toleda", "DalianSky")
         recommended_layouts = [layout for layout in available_layouts if self.utils.contains_any(recommended_authors, layout.comment)]
