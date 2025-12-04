@@ -48,19 +48,20 @@ class ConsoleRedirector(QObject):
         self.append_text_signal.connect(self._append_text_on_main_thread)
 
     def write(self, text):
-        # Write to original stdout
-        if self.original_stdout:
-            self.original_stdout.write(text)
-        
         # Append to GUI text widget using signal for thread safety
         if text.strip():
+            stripped_text = text.rstrip()
             # Check if we're on the main thread
             if threading.current_thread() == threading.main_thread():
                 # Direct call on main thread
-                self.text_widget.append(text.rstrip())
+                self.text_widget.append(stripped_text)
             else:
                 # Use signal for thread-safe GUI update
-                self.append_text_signal.emit(text.rstrip())
+                self.append_text_signal.emit(stripped_text)
+        
+        # Write to original stdout after GUI update to maintain original ordering
+        if self.original_stdout:
+            self.original_stdout.write(text)
 
     def _append_text_on_main_thread(self, text):
         """Slot that appends text on the main thread"""
