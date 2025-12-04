@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QFileDialog, QTextEdit
 )
-from PyQt6.QtCore import Qt, QSize, pyqtSignal, QObject, QTimer, QEventLoop
+from PyQt6.QtCore import Qt, QSize, pyqtSignal, QObject, QTimer
 from PyQt6.QtGui import QIcon, QFont
 from qfluentwidgets import (
     FluentWindow, NavigationItemPosition, FluentIcon,
@@ -310,22 +310,24 @@ class OpCoreGUI(FluentWindow):
             return self.handle_gui_prompt(prompt_type, prompt_text, options)
         
         # We're on a background thread, use signal to invoke on main thread
-        result_holder = {'result': None, 'completed': False}
+        # Use threading.Event for proper synchronization
+        result_holder = {'result': None}
+        event = threading.Event()
         
         # Emit signal to main thread
-        self.gui_prompt_signal.emit(prompt_type, prompt_text, options, result_holder)
+        self.gui_prompt_signal.emit(prompt_type, prompt_text, options, (result_holder, event))
         
         # Wait for result from main thread
-        while not result_holder['completed']:
-            time.sleep(0.01)  # Small sleep to prevent busy waiting
+        event.wait()
         
         return result_holder['result']
     
-    def _handle_gui_prompt_on_main_thread(self, prompt_type, prompt_text, options, result_holder):
+    def _handle_gui_prompt_on_main_thread(self, prompt_type, prompt_text, options, holder_tuple):
         """Slot that handles GUI prompts on the main thread"""
+        result_holder, event = holder_tuple
         result = self.handle_gui_prompt(prompt_type, prompt_text, options)
         result_holder['result'] = result
-        result_holder['completed'] = True
+        event.set()  # Signal that result is ready
 
     def load_hardware_report(self, path, data=None):
         """Load hardware report and update UI"""
