@@ -1360,3 +1360,353 @@ def show_before_using_efi_dialog(parent, bios_requirements, result_dir):
     """
     dialog = BeforeUsingEFIDialog(bios_requirements, result_dir, parent)
     return dialog.exec() == QDialog.DialogCode.Accepted
+
+
+class WiFiNetworkCountDialog(MessageBoxBase):
+    """Dialog for selecting how many WiFi networks to process"""
+
+    def __init__(self, total_networks: int, parent=None):
+        """
+        Initialize WiFi Network Count dialog
+        
+        Args:
+            total_networks: Total number of WiFi networks found
+            parent: Parent widget
+        """
+        super().__init__(parent)
+        self.total_networks = total_networks
+        self.result = 5  # Default value
+
+        # Create UI elements
+        self.titleLabel = QLabel("WiFi Network Retrieval", self.widget)
+        
+        content_text = (
+            f"Found {total_networks} WiFi networks on this device.\n\n"
+            "How many networks would you like to process?\n\n"
+            "Select a specific number or choose to process all available networks."
+        )
+        self.contentLabel = QLabel(content_text, self.widget)
+        
+        # Create input field for number
+        self.inputLineEdit = LineEdit(self.widget)
+        self.inputLineEdit.setPlaceholderText(f"Enter number (1-{total_networks}, default: 5)")
+        
+        # Add "All" button
+        all_button_layout = QHBoxLayout()
+        self.allButton = PushButton("Process All Networks")
+        self.allButton.clicked.connect(self.select_all_networks)
+        all_button_layout.addWidget(self.allButton)
+        all_button_layout.addStretch()
+
+        # Setup UI
+        self.titleLabel.setObjectName("titleLabel")
+        self.contentLabel.setObjectName("contentLabel")
+        self.contentLabel.setWordWrap(True)
+
+        self.viewLayout.addWidget(self.titleLabel)
+        self.viewLayout.addWidget(self.contentLabel)
+        self.viewLayout.addWidget(self.inputLineEdit)
+        self.viewLayout.addLayout(all_button_layout)
+
+        # Set minimum width for the dialog
+        self.widget.setMinimumWidth(500)
+
+        # Focus on input field
+        self.inputLineEdit.setFocus()
+        
+        # Update button text
+        self.yesButton.setText("OK")
+        self.cancelButton.setText("Cancel")
+
+    def select_all_networks(self):
+        """Handle 'Process All Networks' button click"""
+        self.result = self.total_networks
+        self.accept()
+
+    def accept(self):
+        """Handle OK button - validate and store the input"""
+        input_text = self.inputLineEdit.text().strip()
+        
+        if not input_text:
+            # Use default value
+            self.result = min(5, self.total_networks)
+        else:
+            try:
+                num = int(input_text)
+                if 1 <= num <= self.total_networks:
+                    self.result = num
+                else:
+                    MessageBox(
+                        "Invalid Input",
+                        f"Please enter a number between 1 and {self.total_networks}.",
+                        self
+                    ).exec()
+                    return
+            except ValueError:
+                MessageBox(
+                    "Invalid Input",
+                    "Please enter a valid number.",
+                    self
+                ).exec()
+                return
+        
+        super().accept()
+
+    def getResult(self):
+        """Get the selected number of networks"""
+        return self.result
+
+
+def show_wifi_network_count_dialog(parent, total_networks: int):
+    """
+    Show WiFi Network Count dialog
+    
+    Args:
+        parent: Parent widget
+        total_networks: Total number of WiFi networks found
+    
+    Returns:
+        tuple: (count, ok) where count is selected number and ok is True if OK was clicked
+    """
+    dialog = WiFiNetworkCountDialog(total_networks, parent)
+    if dialog.exec():
+        return dialog.getResult(), True
+    return None, False
+
+
+class WiFiAdminAuthDialog(MessageBoxBase):
+    """Dialog informing user about administrator authentication for WiFi passwords"""
+
+    def __init__(self, parent=None):
+        """Initialize WiFi Admin Auth dialog"""
+        super().__init__(parent)
+
+        # Create UI elements
+        self.titleLabel = QLabel("Administrator Authentication Required", self.widget)
+        
+        content_text = (
+            "To retrieve WiFi passwords from the Keychain, macOS will prompt "
+            "you for administrator credentials for each WiFi network.\n\n"
+            "You can:\n"
+            "• Enter your administrator username and password to retrieve the network password\n"
+            "• Click 'Deny' to skip that specific network\n\n"
+            "This is a macOS security feature to protect your saved passwords."
+        )
+        self.contentLabel = QLabel(content_text, self.widget)
+
+        # Setup UI
+        self.titleLabel.setObjectName("titleLabel")
+        self.contentLabel.setObjectName("contentLabel")
+        self.contentLabel.setWordWrap(True)
+
+        self.viewLayout.addWidget(self.titleLabel)
+        self.viewLayout.addWidget(self.contentLabel)
+
+        # Set minimum width
+        self.widget.setMinimumWidth(550)
+        
+        # Hide cancel button and rename yes button
+        self.cancelButton.hide()
+        self.yesButton.setText("Continue")
+
+
+def show_wifi_admin_auth_dialog(parent):
+    """
+    Show WiFi Admin Auth dialog
+    
+    Args:
+        parent: Parent widget
+    
+    Returns:
+        bool: Always returns True after user clicks Continue
+    """
+    dialog = WiFiAdminAuthDialog(parent)
+    dialog.exec()
+    return True
+
+
+class WiFiResultsDialog(QDialog):
+    """Dialog showing WiFi profile extraction results"""
+
+    def __init__(self, profiles, parent=None):
+        """
+        Initialize WiFi Results dialog
+        
+        Args:
+            profiles: List of (ssid, password) tuples
+            parent: Parent widget
+        """
+        super().__init__(parent)
+        self.profiles = profiles
+        
+        self.setWindowTitle("WiFi Profile Extractor")
+        self.setMinimumSize(700, 500)
+        self.setup_ui()
+
+    def setup_ui(self):
+        """Setup the dialog UI"""
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
+        # Title
+        title_label = QLabel("WiFi Profiles Retrieved Successfully")
+        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #107C10;")
+        layout.addWidget(title_label)
+
+        # Summary
+        summary_label = BodyLabel(
+            f"Found {len(self.profiles)} WiFi profile(s) with saved passwords."
+        )
+        summary_label.setStyleSheet("color: #605E5C; font-size: 14px;")
+        layout.addWidget(summary_label)
+
+        # Scroll area for profiles
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: 1px solid #E1DFDD;
+                border-radius: 4px;
+                background-color: white;
+            }
+        """)
+
+        # Container widget for scroll area
+        scroll_widget = QWidget()
+        scroll_layout = QVBoxLayout(scroll_widget)
+        scroll_layout.setSpacing(10)
+        scroll_layout.setContentsMargins(15, 15, 15, 15)
+
+        # Header
+        header_layout = QHBoxLayout()
+        index_header = QLabel("Index")
+        index_header.setStyleSheet("font-weight: bold; min-width: 50px;")
+        ssid_header = QLabel("SSID")
+        ssid_header.setStyleSheet("font-weight: bold; min-width: 250px;")
+        password_header = QLabel("Password")
+        password_header.setStyleSheet("font-weight: bold;")
+        
+        header_layout.addWidget(index_header)
+        header_layout.addWidget(ssid_header)
+        header_layout.addWidget(password_header)
+        header_layout.addStretch()
+        scroll_layout.addLayout(header_layout)
+
+        # Add separator
+        separator = QLabel()
+        separator.setStyleSheet("border-bottom: 2px solid #E1DFDD;")
+        separator.setFixedHeight(2)
+        scroll_layout.addWidget(separator)
+
+        # Add profiles
+        for index, (ssid, password) in enumerate(self.profiles, start=1):
+            profile_layout = QHBoxLayout()
+            
+            index_label = QLabel(str(index))
+            index_label.setStyleSheet("min-width: 50px; color: #323130;")
+            
+            # Truncate long SSID
+            display_ssid = ssid[:31] + "..." if len(ssid) > 31 else ssid
+            ssid_label = QLabel(display_ssid)
+            ssid_label.setStyleSheet("min-width: 250px; color: #323130;")
+            
+            # Truncate long password for display
+            display_password = password[:12] + "..." if len(password) > 12 else password
+            password_label = QLabel(display_password)
+            password_label.setStyleSheet("color: #605E5C; font-family: monospace;")
+            
+            profile_layout.addWidget(index_label)
+            profile_layout.addWidget(ssid_label)
+            profile_layout.addWidget(password_label)
+            profile_layout.addStretch()
+            
+            scroll_layout.addLayout(profile_layout)
+
+        scroll_layout.addStretch()
+        scroll.setWidget(scroll_widget)
+        layout.addWidget(scroll, 1)
+
+        # Success message
+        success_label = BodyLabel(
+            f"✓ Successfully applied {len(self.profiles)} WiFi profile(s) to the configuration."
+        )
+        success_label.setStyleSheet(f"color: #107C10; font-weight: 500; padding: 10px; "
+                                   f"background-color: #DFF6DD; border-radius: 4px;")
+        layout.addWidget(success_label)
+
+        # OK button
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        
+        ok_btn = PrimaryPushButton("OK")
+        ok_btn.clicked.connect(self.accept)
+        button_layout.addWidget(ok_btn)
+        
+        layout.addLayout(button_layout)
+
+
+def show_wifi_results_dialog(parent, profiles):
+    """
+    Show WiFi Results dialog
+    
+    Args:
+        parent: Parent widget
+        profiles: List of (ssid, password) tuples
+    
+    Returns:
+        bool: True if dialog was shown and closed
+    """
+    dialog = WiFiResultsDialog(profiles, parent)
+    dialog.exec()
+    return True
+
+
+class WiFiNoResultsDialog(MessageBoxBase):
+    """Dialog showing no WiFi profiles were found"""
+
+    def __init__(self, parent=None):
+        """Initialize WiFi No Results dialog"""
+        super().__init__(parent)
+
+        # Create UI elements
+        self.titleLabel = QLabel("WiFi Profile Extractor", self.widget)
+        
+        content_text = (
+            "No WiFi profiles with saved passwords were found on this device.\n\n"
+            "This could mean:\n"
+            "• No WiFi networks have been connected to on this device\n"
+            "• WiFi passwords are not saved in the system\n"
+            "• The WiFi adapter is disabled or not available"
+        )
+        self.contentLabel = QLabel(content_text, self.widget)
+
+        # Setup UI
+        self.titleLabel.setObjectName("titleLabel")
+        self.contentLabel.setObjectName("contentLabel")
+        self.contentLabel.setWordWrap(True)
+
+        self.viewLayout.addWidget(self.titleLabel)
+        self.viewLayout.addWidget(self.contentLabel)
+
+        # Set minimum width
+        self.widget.setMinimumWidth(500)
+        
+        # Hide cancel button and rename yes button
+        self.cancelButton.hide()
+        self.yesButton.setText("OK")
+
+
+def show_wifi_no_results_dialog(parent):
+    """
+    Show WiFi No Results dialog
+    
+    Args:
+        parent: Parent widget
+    
+    Returns:
+        bool: Always returns True after user clicks OK
+    """
+    dialog = WiFiNoResultsDialog(parent)
+    dialog.exec()
+    return True

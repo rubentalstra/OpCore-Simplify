@@ -24,7 +24,8 @@ from .styles import COLORS, SPACING
 from .pages import UploadPage, CompatibilityPage, ConfigurationPage, BuildPage, ConsolePage
 from .custom_dialogs import (
     show_input_dialog, show_choice_dialog, show_question_dialog, show_info_dialog,
-    show_before_using_efi_dialog
+    show_before_using_efi_dialog, show_wifi_network_count_dialog, show_wifi_admin_auth_dialog,
+    show_wifi_results_dialog, show_wifi_no_results_dialog
 )
 
 # Import from Scripts package
@@ -325,6 +326,29 @@ class OpCoreGUI(FluentWindow):
                 message = prompt_text
 
             return show_info_dialog(self, title, message)
+
+        elif prompt_type == 'wifi_network_count':
+            # WiFi network count selection dialog
+            if options:
+                total_networks = options.get('total_networks', 5)
+                count, ok = show_wifi_network_count_dialog(self, total_networks)
+                return (count, ok)
+            return (None, False)
+
+        elif prompt_type == 'wifi_admin_auth':
+            # WiFi administrator authentication notice dialog
+            return show_wifi_admin_auth_dialog(self)
+
+        elif prompt_type == 'wifi_results':
+            # WiFi results display dialog
+            if options:
+                profiles = options.get('profiles', [])
+                return show_wifi_results_dialog(self, profiles)
+            return True
+
+        elif prompt_type == 'wifi_no_results':
+            # WiFi no results dialog
+            return show_wifi_no_results_dialog(self)
 
         return None
 
