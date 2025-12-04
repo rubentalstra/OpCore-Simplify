@@ -33,18 +33,38 @@ if scripts_path not in sys.path:
     sys.path.insert(0, scripts_path)
 
 
-class ConsoleRedirector:
-    """Redirect stdout to QTextEdit widget"""
+class ConsoleRedirector(QObject):
+    """Thread-safe stdout redirector to QTextEdit widget using Qt signals"""
+    
+    # Signal to append text on the main thread
+    append_text_signal = pyqtSignal(str)
 
     def __init__(self, text_widget, original_stdout=None):
+        super().__init__()
         self.text_widget = text_widget
         self.original_stdout = original_stdout or sys.__stdout__
+        
+        # Connect signal to slot for thread-safe text appending
+        self.append_text_signal.connect(self._append_text_on_main_thread)
 
     def write(self, text):
-        if text.strip():
-            self.text_widget.append(text.rstrip())
+        # Write to original stdout
         if self.original_stdout:
             self.original_stdout.write(text)
+        
+        # Append to GUI text widget using signal for thread safety
+        if text.strip():
+            # Check if we're on the main thread
+            if threading.current_thread() == threading.main_thread():
+                # Direct call on main thread
+                self.text_widget.append(text.rstrip())
+            else:
+                # Use signal for thread-safe GUI update
+                self.append_text_signal.emit(text.rstrip())
+
+    def _append_text_on_main_thread(self, text):
+        """Slot that appends text on the main thread"""
+        self.text_widget.append(text)
 
     def flush(self):
         if self.original_stdout:
