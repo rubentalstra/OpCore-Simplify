@@ -65,7 +65,7 @@ class ResourceFetcher:
         response = None
 
         while attempt < 3:
-            # Close previous response if it exists and wasn't successful
+            # Close previous response from failed attempt before retrying
             if response:
                 response.close()
                 response = None
@@ -238,6 +238,7 @@ class ResourceFetcher:
                     return False
             finally:
                 # Always close the response to prevent resource leaks
+                # The response is only needed during download; verification reads from the local file
                 if response:
                     response.close()
 
