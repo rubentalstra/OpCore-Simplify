@@ -7,10 +7,42 @@ from PyQt6.QtCore import Qt
 from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel, CardWidget,
     StrongBodyLabel, ComboBox, PrimaryPushButton, FluentIcon,
-    GroupHeaderCardWidget, ScrollArea
+    GroupHeaderCardWidget
 )
 
 from ..styles import COLORS, SPACING
+
+
+def add_group_with_indent(card, icon, title, content, widget=None, indent_level=0):
+    """
+    Add a group to a GroupHeaderCardWidget with optional indentation.
+    This pattern is consistent with compatibility_page.py.
+
+    Args:
+        card: The GroupHeaderCardWidget instance
+        icon: Icon for the group
+        title: Title text
+        content: Content/description text
+        widget: Widget to add (default: new empty QWidget)
+        indent_level: 0 for main items, 1+ for child items (each level adds 20px left margin)
+
+    Returns:
+        The created CardGroupWidget
+    """
+    if widget is None:
+        widget = QWidget()  # Create new instance each time
+
+    group = card.addGroup(icon, title, content, widget)
+
+    # Apply indentation if needed
+    if indent_level > 0:
+        # Get the horizontal layout (hBoxLayout) and adjust left margin
+        # Default margins are (24, 10, 24, 10) - left, top, right, bottom
+        base_margin = 24
+        indent = 20 * indent_level
+        group.hBoxLayout.setContentsMargins(base_margin + indent, 10, 24, 10)
+
+    return group
 
 
 class ConfigurationPage(QWidget):
@@ -50,17 +82,12 @@ class ConfigurationPage(QWidget):
         main_layout.addWidget(header_container)
         main_layout.addSpacing(SPACING['medium'])
 
-        # Scrollable area for configuration cards
-        scroll_area = ScrollArea(self)
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setObjectName("configurationScrollArea")
-
-        # Container widget for scroll area
-        container = QWidget()
-        self.cards_layout = QVBoxLayout(container)
-        self.cards_layout.setSpacing(SPACING['medium'])
-        self.cards_layout.setContentsMargins(0, 0, 0, 0)
-
+        # Cards layout - directly in main layout without scroll area container
+        self.cards_layout = main_layout
+        
+        # Track the position where cards should be inserted (after header)
+        self.cards_start_index = main_layout.count()
+        
         # Store reference to configuration card for dynamic updates
         self.config_card = None
         self._build_config_card()
@@ -143,9 +170,6 @@ class ConfigurationPage(QWidget):
         self.cards_layout.addWidget(custom_card)
         self.cards_layout.addStretch()
 
-        scroll_area.setWidget(container)
-        main_layout.addWidget(scroll_area)
-
     def _build_config_card(self):
         """Build or rebuild the configuration card with current data"""
         # Remove old card if it exists
@@ -189,9 +213,9 @@ class ConfigurationPage(QWidget):
         )
 
         # Disabled Devices - display each device vertically
-        disabled_devices = self.controller.disabled_devices if hasattr(self.controller, 'disabled_devices') and self.controller.disabled_devices else {}
+        disabled_devices = self.controller.disabled_devices if hasattr(self.controller, 'disabled_devices') and self.controller.disabled_devices is not None else {}
         
-        if disabled_devices and len(disabled_devices) > 0:
+        if disabled_devices:
             # Add header for disabled devices section
             header_widget = QWidget()
             header_layout = QVBoxLayout(header_widget)
@@ -213,18 +237,14 @@ class ConfigurationPage(QWidget):
                 device_layout = QVBoxLayout(device_widget)
                 device_layout.setContentsMargins(0, 0, 0, 0)
                 
-                device_group = self.config_card.addGroup(
+                add_group_with_indent(
+                    self.config_card,
                     FluentIcon.INFO,
                     device_name,
                     "",
-                    device_widget
+                    device_widget,
+                    indent_level=1
                 )
-                
-                # Apply indentation (similar to compatibility_page.py)
-                indent_level = 1
-                base_margin = 24
-                indent = 20 * indent_level
-                device_group.hBoxLayout.setContentsMargins(base_margin + indent, 10, 24, 10)
         else:
             # No disabled devices - show success message
             none_widget = QWidget()
@@ -241,8 +261,8 @@ class ConfigurationPage(QWidget):
                 none_widget
             )
         
-        # Insert the card at position 0 (before customization card)
-        self.cards_layout.insertWidget(0, self.config_card)
+        # Insert the card at the tracked position (after header, before other cards)
+        self.cards_layout.insertWidget(self.cards_start_index, self.config_card)
 
     def select_macos(self):
         """Select macOS version"""
