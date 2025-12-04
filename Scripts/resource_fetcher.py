@@ -161,14 +161,10 @@ class ResourceFetcher:
             if is_gui_mode:
                 # Only print every 1MB to avoid flooding the GUI console
                 current_mb = bytes_downloaded // (1024*1024)
-                progress_changed = progress != last_progress
                 mb_boundary_crossed = current_mb > last_mb_printed
                 
-                # For known-size downloads: print every MB
-                # For unknown-size downloads: print every MB or when progress string changes
-                should_print = progress_changed and mb_boundary_crossed
-                
-                if should_print:
+                # Print progress every MB to give user feedback without flooding
+                if mb_boundary_crossed:
                     print(progress)
                     last_progress = progress
                     last_mb_printed = current_mb
