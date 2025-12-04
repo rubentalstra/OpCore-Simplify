@@ -10,6 +10,15 @@ class WifiProfileExtractor:
         self.run = run.Run().run
         self.utils = utils_instance if utils_instance is not None else utils.Utils()
 
+    def log(self, message):
+        """Log message to console and build log if available"""
+        print(message)
+        # If GUI mode and gui_parent is available, also log to build_log
+        if hasattr(self.utils, 'gui_parent') and self.utils.gui_parent:
+            parent = self.utils.gui_parent
+            if hasattr(parent, 'build_log') and parent.build_log:
+                parent.build_log.append(message)
+
     def get_authentication_type(self, authentication_type):
         authentication_type = authentication_type.lower()
 
@@ -157,10 +166,10 @@ class WifiProfileExtractor:
             ssid = ssid_list[processed_count]
             
             try:
-                print("")
-                print("Processing {}/{}: {}".format(processed_count + 1, len(ssid_list), ssid))
+                self.log("")
+                self.log("Processing {}/{}: {}".format(processed_count + 1, len(ssid_list), ssid))
                 if os_name == "Darwin" and not self.utils.gui_callback:
-                    # Only show this hint in CLI mode - in GUI mode the dialog already explained it
+                    # Only show this hint in CLI mode
                     print("Please enter your administrator name and password or click 'Deny' to skip this network.")
                 
                 password = get_password_func(ssid)
@@ -168,18 +177,18 @@ class WifiProfileExtractor:
                     if (ssid, password) not in networks:
                         consecutive_failures = 0
                         networks.append((ssid, password))
-                        print("Successfully retrieved password.")
+                        self.log("✓ Successfully retrieved password.")
                         
                         if len(networks) == max_networks:
                             break
                 else:
                     consecutive_failures += 1 if os_name == "Darwin" else 0
-                    print("Could not retrieve password for this network.")
+                    self.log("✗ Could not retrieve password for this network.")
 
                     if consecutive_failures >= max_consecutive_failures:
                         # In GUI mode, auto-continue to avoid blocking
                         if self.utils.gui_callback:
-                            print("Auto-continuing to next network...")
+                            self.log("Auto-continuing to next network...")
                             consecutive_failures = 0
                         else:
                             continue_input = self.utils.request_input("\nUnable to retrieve passwords. Continue trying? (Yes/no): ").strip().lower() or "yes"
@@ -190,12 +199,12 @@ class WifiProfileExtractor:
                             consecutive_failures = 0
             except Exception as e:
                 consecutive_failures += 1 if os_name == "Darwin" else 0
-                print("Error processing network '{}': {}".format(ssid, str(e)))
+                self.log("Error processing network '{}': {}".format(ssid, str(e)))
 
                 if consecutive_failures >= max_consecutive_failures:
                     # In GUI mode, auto-continue to avoid blocking
                     if self.utils.gui_callback:
-                        print("Auto-continuing to next network...")
+                        self.log("Auto-continuing to next network...")
                         consecutive_failures = 0
                     else:
                         continue_input = self.utils.request_input("\nUnable to retrieve passwords. Continue trying? (Yes/no): ").strip().lower() or "yes"
@@ -210,7 +219,7 @@ class WifiProfileExtractor:
             if processed_count >= max_networks and len(networks) < max_networks and processed_count < len(ssid_list):
                 # In GUI mode, auto-continue to avoid blocking
                 if self.utils.gui_callback:
-                    print("Auto-continuing to retrieve more networks...")
+                    self.log("Auto-continuing to retrieve more networks...")
                     consecutive_failures = 0
                 else:
                     continue_input = self.utils.request_input("\nOnly retrieved {}/{} networks. Try more to reach your target? (Yes/no): ".format(len(networks), max_networks)).strip().lower() or "yes"
@@ -375,8 +384,8 @@ class WifiProfileExtractor:
 
         profiles = []
         self.utils.head("Detecting WiFi Profiles")
-        print("")
-        print("Scanning for WiFi profiles...")
+        self.log("")
+        self.log("🔍 Scanning for WiFi profiles...")
         
         if os_name == "Windows":
             profiles = self.get_preferred_networks_windows()
@@ -387,48 +396,48 @@ class WifiProfileExtractor:
 
             if wifi_interfaces:
                 for interface in wifi_interfaces:
-                    print("Checking interface: {}".format(interface))
+                    self.log("Checking interface: {}".format(interface))
                     interface_profiles = self.get_preferred_networks_macos(interface)
                     if interface_profiles:
                         profiles = interface_profiles
                         break
             else:
-                print("No WiFi interfaces detected.")
+                self.log("No WiFi interfaces detected.")
 
         if not profiles:
             # Just log - no dialog needed
-            print("")
-            print("=" * 60)
-            print("NO WIFI PROFILES FOUND")
-            print("=" * 60)
-            print("")
-            print("No WiFi profiles with saved passwords were found.")
-            print("")
-            print("This could mean:")
-            print("  • No WiFi networks have been connected to on this device")
-            print("  • WiFi passwords are not saved in the system")
-            print("  • The WiFi adapter is disabled or not available")
-            print("")
-            print("=" * 60)
+            self.log("")
+            self.log("=" * 60)
+            self.log("NO WIFI PROFILES FOUND")
+            self.log("=" * 60)
+            self.log("")
+            self.log("No WiFi profiles with saved passwords were found.")
+            self.log("")
+            self.log("This could mean:")
+            self.log("  • No WiFi networks have been connected to on this device")
+            self.log("  • WiFi passwords are not saved in the system")
+            self.log("  • The WiFi adapter is disabled or not available")
+            self.log("")
+            self.log("=" * 60)
             
             # Only show "Press Enter to continue" prompt in CLI mode
             if not self.utils.gui_callback:
                 self.utils.request_input()
         else:
             # Just log - no dialog needed, results are already visible in build log
-            print("")
-            print("=" * 60)
-            print("WIFI PROFILES RETRIEVED SUCCESSFULLY")
-            print("=" * 60)
-            print("")
-            print("Index  SSID                             Password")
-            print("-------------------------------------------------------")
+            self.log("")
+            self.log("=" * 60)
+            self.log("✅ WIFI PROFILES RETRIEVED SUCCESSFULLY")
+            self.log("=" * 60)
+            self.log("")
+            self.log("Index  SSID                             Password")
+            self.log("-------------------------------------------------------")
             for index, (ssid, password) in enumerate(profiles, start=1):
-                print("{:<6} {:<32} {:<8}".format(index, ssid[:31] + "..." if len(ssid) > 31 else ssid, password[:12] + "..." if len(password) > 12 else password))
-            print("")
-            print("Successfully applied {} WiFi profiles.".format(len(profiles)))
-            print("=" * 60)
-            print("")
+                self.log("{:<6} {:<32} {:<8}".format(index, ssid[:31] + "..." if len(ssid) > 31 else ssid, password[:12] + "..." if len(password) > 12 else password))
+            self.log("")
+            self.log("Successfully applied {} WiFi profiles.".format(len(profiles)))
+            self.log("=" * 60)
+            self.log("")
             
             # Only show "Press Enter to continue" prompt in CLI mode
             if not self.utils.gui_callback:
