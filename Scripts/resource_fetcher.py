@@ -65,6 +65,11 @@ class ResourceFetcher:
         response = None
 
         while attempt < 3:
+            # Close previous response if it exists and wasn't successful
+            if response:
+                response.close()
+                response = None
+            
             response = self._make_request(resource_url)
 
             if not response:
