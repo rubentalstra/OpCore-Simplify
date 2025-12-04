@@ -218,7 +218,7 @@ class Utils:
         if resize:
             self.adjust_window_size()
         # Skip clear screen in GUI mode or if TERM is not set to prevent issues
-        if not self.gui_callback and os.environ.get('TERM'):
+        if self.gui_callback is None and os.environ.get('TERM'):
             try:
                 os.system('cls' if os.name=='nt' else 'clear')
             except Exception:
@@ -235,7 +235,7 @@ class Utils:
     
     def adjust_window_size(self, content=""):
         # Skip terminal resizing in GUI mode or if TERM is not set
-        if self.gui_callback or not os.environ.get('TERM'):
+        if self.gui_callback is not None or not os.environ.get('TERM'):
             return
         lines = content.splitlines()
         rows = len(lines)
