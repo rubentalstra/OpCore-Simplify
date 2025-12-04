@@ -351,7 +351,7 @@ class Utils:
 
     def progress_bar(self, title, steps, current_step_index, done=False):
         # Check if GUI callback exists for progress updates
-        if hasattr(self, 'gui_progress_callback') and self.gui_progress_callback:
+        if self.gui_progress_callback:
             # Calculate progress percentage
             if done:
                 progress = 100
