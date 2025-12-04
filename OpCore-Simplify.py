@@ -201,8 +201,10 @@ class OCPE:
 
     def build_opencore_efi(self, hardware_report, disabled_devices, smbios_model, macos_version, needs_oclp):
         # Check which kexts are enabled to determine which steps to show
-        itlwm_enabled = self.k.kexts[kext_maestro.kext_data.kext_index_by_name.get("itlwm")].checked if kext_maestro.kext_data.kext_index_by_name.get("itlwm") else False
-        applealc_enabled = self.k.kexts[kext_maestro.kext_data.kext_index_by_name.get("AppleALC")].checked if kext_maestro.kext_data.kext_index_by_name.get("AppleALC") else False
+        itlwm_idx = kext_maestro.kext_data.kext_index_by_name.get("itlwm")
+        applealc_idx = kext_maestro.kext_data.kext_index_by_name.get("AppleALC")
+        itlwm_enabled = self.k.kexts[itlwm_idx].checked if itlwm_idx is not None else False
+        applealc_enabled = self.k.kexts[applealc_idx].checked if applealc_idx is not None else False
         
         # Build dynamic steps list based on enabled kexts
         steps = [
@@ -211,15 +213,15 @@ class OCPE:
             "Installing kernel extensions"
         ]
         
-        # Add WiFi configuration step if itlwm is enabled
-        if itlwm_enabled:
-            steps.append("Extracting WiFi profiles")
-        
-        steps.append("Configuring kernel extensions")
-        
-        # Add codec layout selection step if AppleALC is enabled
-        if applealc_enabled:
-            steps.append("Selecting audio codec layout")
+        # Make the kext configuration step more descriptive based on what's enabled
+        kext_config_step = "Configuring kernel extensions"
+        if itlwm_enabled and applealc_enabled:
+            kext_config_step += " (WiFi profiles, audio codec)"
+        elif itlwm_enabled:
+            kext_config_step += " (WiFi profiles)"
+        elif applealc_enabled:
+            kext_config_step += " (audio codec)"
+        steps.append(kext_config_step)
         
         steps.extend([
             "Generating config.plist",
@@ -281,22 +283,15 @@ class OCPE:
         kexts_directory = os.path.join(self.result_dir, "EFI", "OC", "Kexts")
         self.k.install_kexts_to_efi(macos_version, kexts_directory)
         
-        # Show WiFi extraction step if itlwm is enabled
-        if itlwm_enabled:
-            self.u.progress_bar(title, steps, current_step)
-            current_step += 1
+        # Progress to kext configuration step (WiFi extraction and codec selection happen here)
+        self.u.progress_bar(title, steps, current_step)
+        current_step += 1
         
-        # Load kexts (which also handles WiFi profile extraction internally)
+        # Load kexts - this internally handles WiFi profile extraction and codec layout selection
         config_data["Kernel"]["Add"] = self.k.load_kexts(hardware_report, macos_version, kexts_directory)
 
         self.u.progress_bar(title, steps, current_step)
         current_step += 1
-        
-        # Show codec layout selection step if AppleALC is enabled
-        if applealc_enabled:
-            self.u.progress_bar(title, steps, current_step)
-            current_step += 1
-        
         self.co.genarate(hardware_report, disabled_devices, smbios_model, macos_version, needs_oclp, self.k.kexts, config_data)
         self.u.write_file(config_file, config_data)
 
