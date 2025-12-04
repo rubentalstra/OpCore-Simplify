@@ -41,7 +41,7 @@ class ResourceFetcher:
             ssl_context = ssl._create_unverified_context()
         return ssl_context
 
-    def _make_request(self, resource_url, timeout=10):
+    def _make_request(self, resource_url, timeout=30):
         try:
             headers = dict(self.request_headers)
             headers["Accept-Encoding"] = "gzip, deflate"
@@ -113,6 +113,11 @@ class ResourceFetcher:
         last_time = start_time
         last_bytes = 0
         speeds = []
+        
+        # Stall detection variables
+        stall_timeout = 60  # 60 seconds without progress = stalled
+        last_progress_time = time.time()
+        last_progress_bytes = 0
 
         speed_str = "-- KB/s"
         
@@ -124,7 +129,15 @@ class ResourceFetcher:
         last_mb_printed = -1  # Last megabyte boundary printed (GUI mode)
         
         while True:
-            chunk = response.read(self.buffer_size)
+            try:
+                chunk = response.read(self.buffer_size)
+            except socket.timeout:
+                print("\nDownload stalled - connection timeout while reading data")
+                raise Exception("Download stalled - connection timeout")
+            except Exception as e:
+                print("\nError reading data: {}".format(e))
+                raise
+                
             if not chunk:
                 break
             local_file.write(chunk)
@@ -132,6 +145,14 @@ class ResourceFetcher:
             
             current_time = time.time()
             time_diff = current_time - last_time
+            
+            # Check for stall - no progress for stall_timeout seconds
+            if bytes_downloaded > last_progress_bytes:
+                last_progress_time = current_time
+                last_progress_bytes = bytes_downloaded
+            elif current_time - last_progress_time > stall_timeout:
+                print("\nDownload appears to be stalled (no progress for {} seconds)".format(stall_timeout))
+                raise Exception("Download stalled - no progress for {} seconds".format(stall_timeout))
             
             if time_diff > 0.5:
                 current_speed = (bytes_downloaded - last_bytes) / time_diff
@@ -186,10 +207,20 @@ class ResourceFetcher:
 
             if not response:
                 print("Failed to fetch content from {}. Retrying...".format(resource_url))
+                time.sleep(2)  # Brief delay before retry
                 continue
 
-            with open(destination_path, "wb") as local_file:
-                self._download_with_progress(response, local_file)
+            try:
+                with open(destination_path, "wb") as local_file:
+                    self._download_with_progress(response, local_file)
+            except Exception as e:
+                print("Error during download: {}".format(e))
+                if os.path.exists(destination_path):
+                    os.remove(destination_path)
+                if attempt < MAX_ATTEMPTS:
+                    print("Retrying download (attempt {}/{})...".format(attempt + 1, MAX_ATTEMPTS))
+                    time.sleep(2)  # Brief delay before retry
+                continue
 
             if os.path.exists(destination_path) and os.path.getsize(destination_path) > 0:
                 if sha256_hash:
@@ -201,6 +232,7 @@ class ResourceFetcher:
                     else:
                         print("Checksum mismatch! Removing file and retrying download...")
                         os.remove(destination_path)
+                        time.sleep(2)  # Brief delay before retry
                         continue
                 else:
                     print("No SHA256 hash provided. Downloading file without verification.")
@@ -211,6 +243,7 @@ class ResourceFetcher:
 
             if attempt < MAX_ATTEMPTS:
                 print("Download failed for {}. Retrying...".format(resource_url))
+                time.sleep(2)  # Brief delay before retry
 
         print("Failed to download {} after {} attempts.".format(resource_url, MAX_ATTEMPTS))
         return False
