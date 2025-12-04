@@ -813,11 +813,10 @@ class KextMaestro:
             print("- Forcing unsupported kexts can cause system instability. \033[0;31mProceed with caution.\033[0m")
             print("")
             
-            # Build list of kext names for GUI
+            # Build list of kext names for dialog
             kext_list = "\n".join([f"  • {kext_name}{' (Lilu Plugin)' if is_lilu else ''}" 
                                   for kext_name, is_lilu in incompatible_kexts])
             
-            kext_list = "\n".join([f"  • {kext.name}" for kext in incompatible_kexts])
             message = f'The following kexts are incompatible with macOS version {target_darwin_version}:\n\n{kext_list}\n\nWith Lilu plugins, using the "-lilubetaall" boot argument will force them to load.\n\nForcing unsupported kexts can cause system instability. Proceed with caution.\n\nDo you want to force load {"these kexts" if len(incompatible_kexts) > 1 else "this kext"} on the unsupported macOS version?'
             
             option = self.utils.show_question_dialog(
