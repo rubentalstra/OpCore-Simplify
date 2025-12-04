@@ -237,20 +237,13 @@ class WifiProfileExtractor:
             
         max_networks = self.ask_network_count(len(ssid_list))
         
-        # Show admin auth notice only in GUI mode
-        if self.utils.gui_callback:
-            # Show dialog informing about admin authentication
-            self.utils.gui_callback(
-                'wifi_admin_auth',
-                '',
-                {}
-            )
-        else:
-            # CLI mode - show text notice
+        # In CLI mode, show a brief notice about admin authentication
+        if not self.utils.gui_callback:
             self.utils.head("Administrator Authentication Required")
             print("")
             print("To retrieve WiFi passwords from the Keychain, macOS will prompt")
             print("you for administrator credentials for each WiFi network.")
+            print("")
         
         return self.process_networks(ssid_list, max_networks, self.get_wifi_password_macos)
 
@@ -403,54 +396,41 @@ class WifiProfileExtractor:
                 print("No WiFi interfaces detected.")
 
         if not profiles:
-            if self.utils.gui_callback:
-                # Show no results dialog in GUI mode
-                self.utils.gui_callback(
-                    'wifi_no_results',
-                    '',
-                    {}
-                )
-            else:
-                # CLI mode
-                self.utils.head("WiFi Profile Extractor")
-                print("")
-                print("No WiFi profiles with saved passwords were found.")
+            # Just log - no dialog needed
+            print("")
+            print("=" * 60)
+            print("NO WIFI PROFILES FOUND")
+            print("=" * 60)
+            print("")
+            print("No WiFi profiles with saved passwords were found.")
+            print("")
+            print("This could mean:")
+            print("  • No WiFi networks have been connected to on this device")
+            print("  • WiFi passwords are not saved in the system")
+            print("  • The WiFi adapter is disabled or not available")
+            print("")
+            print("=" * 60)
+            
+            # Only show "Press Enter to continue" prompt in CLI mode
+            if not self.utils.gui_callback:
                 self.utils.request_input()
         else:
-            if self.utils.gui_callback:
-                # Show results dialog in GUI mode
-                self.utils.gui_callback(
-                    'wifi_results',
-                    '',
-                    {
-                        'profiles': profiles
-                    }
-                )
-                # Also print to console/build log for reference
-                print("")
-                print("=" * 60)
-                print("WiFi PROFILES RETRIEVED SUCCESSFULLY")
-                print("=" * 60)
-                print("")
-                print("Index  SSID                             Password")
-                print("-------------------------------------------------------")
-                for index, (ssid, password) in enumerate(profiles, start=1):
-                    print("{:<6} {:<32} {:<8}".format(index, ssid[:31] + "..." if len(ssid) > 31 else ssid, password[:12] + "..." if len(password) > 12 else password))
-                print("")
-                print("Successfully applied {} WiFi profiles.".format(len(profiles)))
-                print("=" * 60)
-            else:
-                # CLI mode
-                self.utils.head("WiFi Profile Extractor")
-                print("")
-                print("Found the following WiFi profiles with saved passwords:")
-                print("")
-                print("Index  SSID                             Password")
-                print("-------------------------------------------------------")
-                for index, (ssid, password) in enumerate(profiles, start=1):
-                    print("{:<6} {:<32} {:<8}".format(index, ssid[:31] + "..." if len(ssid) > 31 else ssid, password[:12] + "..." if len(password) > 12 else password))
-                print("")
-                print("Successfully applied {} WiFi profiles.".format(len(profiles)))
-                print("")
+            # Just log - no dialog needed, results are already visible in build log
+            print("")
+            print("=" * 60)
+            print("WIFI PROFILES RETRIEVED SUCCESSFULLY")
+            print("=" * 60)
+            print("")
+            print("Index  SSID                             Password")
+            print("-------------------------------------------------------")
+            for index, (ssid, password) in enumerate(profiles, start=1):
+                print("{:<6} {:<32} {:<8}".format(index, ssid[:31] + "..." if len(ssid) > 31 else ssid, password[:12] + "..." if len(password) > 12 else password))
+            print("")
+            print("Successfully applied {} WiFi profiles.".format(len(profiles)))
+            print("=" * 60)
+            print("")
+            
+            # Only show "Press Enter to continue" prompt in CLI mode
+            if not self.utils.gui_callback:
                 self.utils.request_input()
         return profiles
