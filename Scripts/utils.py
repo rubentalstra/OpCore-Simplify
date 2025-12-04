@@ -217,7 +217,9 @@ class Utils:
     def head(self, text = None, width = 68, resize=True):
         if resize:
             self.adjust_window_size()
-        os.system('cls' if os.name=='nt' else 'clear')
+        # Skip clear screen in GUI mode to prevent issues
+        if not self.gui_callback:
+            os.system('cls' if os.name=='nt' else 'clear')
         if text == None:
             text = self.script_name
         separator = "═" * (width - 2)
@@ -229,6 +231,9 @@ class Utils:
         print("╔{}╗\n║{}║\n╚{}╝".format(separator, title, separator))
     
     def adjust_window_size(self, content=""):
+        # Skip terminal resizing in GUI mode
+        if self.gui_callback:
+            return
         lines = content.splitlines()
         rows = len(lines)
         cols = max(len(line) for line in lines) if lines else 0
