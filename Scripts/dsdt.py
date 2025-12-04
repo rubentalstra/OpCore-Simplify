@@ -13,7 +13,6 @@ class DSDT:
         self.github = github.Github(utils_instance=self.u)
         self.fetcher = resource_fetcher.ResourceFetcher(utils_instance=self.u)
         self.r  = run.Run()
-        #self.u  = utils.Utils("SSDT Time")
         self.iasl_url_macOS = "https://raw.githubusercontent.com/acidanthera/MaciASL/master/Dist/iasl-stable"
         self.iasl_url_macOS_legacy = "https://raw.githubusercontent.com/acidanthera/MaciASL/master/Dist/iasl-legacy"
         self.iasl_url_linux = "https://raw.githubusercontent.com/corpnewt/linux_iasl/main/iasl.zip"
