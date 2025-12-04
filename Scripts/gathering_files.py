@@ -152,8 +152,15 @@ class gatheringFiles:
         self.utils.create_folder(self.temporary_dir)
 
         seen_download_urls = set()
-
-        for product in kexts + [{"Name": "OpenCorePkg"}]:
+        
+        # Calculate total number of products to download for progress tracking
+        total_products = 0
+        products_to_download = []
+        
+        # First pass: collect products that need to be downloaded
+        all_products = kexts + [{"Name": "OpenCorePkg"}]
+        
+        for product in all_products:
             if not isinstance(product, dict) and not product.checked:
                 continue
 
@@ -210,12 +217,57 @@ class gatheringFiles:
                 folder_is_valid, _ = self.integrity_checker.verify_folder_integrity(asset_dir, manifest_path)
                 
                 if is_latest_id and folder_is_valid:
-                    print(f"\nLatest version of {product_name} already downloaded.")
+                    # Skip this product - already up to date
                     continue
+            
+            # Add to products to download list
+            products_to_download.append({
+                'product': product,
+                'product_name': product_name,
+                'product_id': product_id,
+                'product_download_url': product_download_url,
+                'sha256_hash': sha256_hash,
+                'product_history_index': product_history_index,
+                'asset_dir': asset_dir,
+                'manifest_path': manifest_path
+            })
+        
+        total_products = len(products_to_download)
+        
+        # Second pass: actually download the products with progress tracking
+        for index, download_item in enumerate(products_to_download):
+            product = download_item['product']
+            product_name = download_item['product_name']
+            product_id = download_item['product_id']
+            product_download_url = download_item['product_download_url']
+            sha256_hash = download_item['sha256_hash']
+            product_history_index = download_item['product_history_index']
+            asset_dir = download_item['asset_dir']
+            manifest_path = download_item['manifest_path']
+            
+            # Update progress for GUI mode
+            if self.utils.gui_callback and hasattr(self.utils, 'gui_gathering_progress_callback'):
+                progress_info = {
+                    'current': index + 1,
+                    'total': total_products,
+                    'product_name': product_name,
+                    'status': 'downloading'
+                }
+                self.utils.gui_gathering_progress_callback(progress_info)
+
+            
+            # Update progress for GUI mode
+            if self.utils.gui_callback and hasattr(self.utils, 'gui_gathering_progress_callback'):
+                progress_info = {
+                    'current': index + 1,
+                    'total': total_products,
+                    'product_name': product_name,
+                    'status': 'downloading'
+                }
+                self.utils.gui_gathering_progress_callback(progress_info)
 
             print("")
-            print("Updating" if product_history_index is not None else "Please wait for download", end=" ")
-            print("{}...".format(product_name))
+            print("Downloading {}/{}: {}".format(index + 1, total_products, product_name))
             if product_download_url:
                 print("from {}".format(product_download_url))
                 print("")
@@ -238,9 +290,11 @@ class gatheringFiles:
                 else:
                     raise Exception("Could not download {} at this time. Please try again later.".format(product_name))
             
+            print("Extracting {}...".format(product_name))
             self.utils.extract_zip_file(zip_path)
             self.utils.create_folder(asset_dir, remove_content=True)
             
+            # Extract nested zips
             while True:
                 nested_zip_files = self.utils.find_matching_paths(os.path.join(self.temporary_dir, product_name), extension_filter=".zip")
                 if not nested_zip_files:
@@ -251,9 +305,19 @@ class gatheringFiles:
                     os.remove(full_zip_path)
 
             if "OpenCore" in product_name:
+                # Update progress for OcBinaryData download
+                if self.utils.gui_callback and hasattr(self.utils, 'gui_gathering_progress_callback'):
+                    progress_info = {
+                        'current': index + 1,
+                        'total': total_products,
+                        'product_name': 'OcBinaryData (for OpenCore)',
+                        'status': 'downloading'
+                    }
+                    self.utils.gui_gathering_progress_callback(progress_info)
+                
                 oc_binary_data_zip_path = os.path.join(self.temporary_dir, "OcBinaryData.zip")
                 print("")
-                print("Please wait for download OcBinaryData...")
+                print("Downloading OcBinaryData...")
                 print("from {}".format(self.ocbinarydata_url))
                 print("")
                 self.fetcher.download_and_save_file(self.ocbinarydata_url, oc_binary_data_zip_path)
@@ -268,13 +332,38 @@ class gatheringFiles:
                     shutil.rmtree(self.temporary_dir, ignore_errors=True)
                     return False
                 
+                print("Extracting OcBinaryData...")
                 self.utils.extract_zip_file(oc_binary_data_zip_path)
-
+            
+            # Update progress for processing
+            if self.utils.gui_callback and hasattr(self.utils, 'gui_gathering_progress_callback'):
+                progress_info = {
+                    'current': index + 1,
+                    'total': total_products,
+                    'product_name': product_name,
+                    'status': 'processing'
+                }
+                self.utils.gui_gathering_progress_callback(progress_info)
+            
+            print("Processing {}...".format(product_name))
             if self.move_bootloader_kexts_to_product_directory(product_name):
                 self.integrity_checker.generate_folder_manifest(asset_dir, manifest_path)
                 self._update_download_history(download_history, product_name, product_id, product_download_url, sha256_hash)
 
         shutil.rmtree(self.temporary_dir, ignore_errors=True)
+        
+        # Final progress update for GUI
+        if self.utils.gui_callback and hasattr(self.utils, 'gui_gathering_progress_callback'):
+            progress_info = {
+                'current': total_products,
+                'total': total_products,
+                'product_name': 'Complete',
+                'status': 'complete'
+            }
+            self.utils.gui_gathering_progress_callback(progress_info)
+        
+        print("")
+        print("All files gathered successfully!")
         return True
     
     def get_kernel_patches(self, patches_name, patches_url):
