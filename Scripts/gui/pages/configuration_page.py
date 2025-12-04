@@ -61,58 +61,9 @@ class ConfigurationPage(QWidget):
         self.cards_layout.setSpacing(SPACING['medium'])
         self.cards_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Current Configuration Card using GroupHeaderCardWidget
-        config_card = GroupHeaderCardWidget("Current Configuration", self)
-        
-        # macOS Version group
-        macos_widget = QWidget()
-        macos_widget_layout = QHBoxLayout(macos_widget)
-        macos_widget_layout.setContentsMargins(0, 0, 0, 0)
-        self.macos_value = BodyLabel("Not selected")
-        self.macos_value.setStyleSheet(f"color: {COLORS['text_secondary']};")
-        macos_widget_layout.addWidget(self.macos_value)
-        macos_widget_layout.addStretch()
-        
-        config_card.addGroup(
-            FluentIcon.GLOBE,
-            "macOS Version",
-            "Target operating system version",
-            macos_widget
-        )
-
-        # SMBIOS Model group
-        smbios_widget = QWidget()
-        smbios_widget_layout = QHBoxLayout(smbios_widget)
-        smbios_widget_layout.setContentsMargins(0, 0, 0, 0)
-        self.smbios_value = BodyLabel("Not selected")
-        self.smbios_value.setStyleSheet(f"color: {COLORS['text_secondary']};")
-        smbios_widget_layout.addWidget(self.smbios_value)
-        smbios_widget_layout.addStretch()
-        
-        config_card.addGroup(
-            FluentIcon.TAG,
-            "SMBIOS Model",
-            "System identifier for macOS",
-            smbios_widget
-        )
-
-        # Disabled Devices group
-        devices_widget = QWidget()
-        devices_widget_layout = QVBoxLayout(devices_widget)
-        devices_widget_layout.setContentsMargins(0, 0, 0, 0)
-        self.devices_value = BodyLabel("None")
-        self.devices_value.setStyleSheet(f"color: {COLORS['text_secondary']};")
-        self.devices_value.setWordWrap(True)
-        devices_widget_layout.addWidget(self.devices_value)
-        
-        config_card.addGroup(
-            FluentIcon.CANCEL,
-            "Disabled Devices",
-            "Hardware components excluded from configuration",
-            devices_widget
-        )
-
-        self.cards_layout.addWidget(config_card)
+        # Store reference to configuration card for dynamic updates
+        self.config_card = None
+        self._build_config_card()
 
         # Customization Options Card using GroupHeaderCardWidget
         custom_card = GroupHeaderCardWidget("Customization Options", self)
@@ -194,6 +145,104 @@ class ConfigurationPage(QWidget):
 
         scroll_area.setWidget(container)
         main_layout.addWidget(scroll_area)
+
+    def _build_config_card(self):
+        """Build or rebuild the configuration card with current data"""
+        # Remove old card if it exists
+        if self.config_card is not None:
+            self.cards_layout.removeWidget(self.config_card)
+            self.config_card.deleteLater()
+        
+        # Create new configuration card
+        self.config_card = GroupHeaderCardWidget("Current Configuration", self)
+        
+        # macOS Version group
+        macos_widget = QWidget()
+        macos_widget_layout = QHBoxLayout(macos_widget)
+        macos_widget_layout.setContentsMargins(0, 0, 0, 0)
+        self.macos_value = BodyLabel(self.controller.macos_version_text if hasattr(self.controller, 'macos_version_text') else "Not selected")
+        self.macos_value.setStyleSheet(f"color: {COLORS['text_secondary']};")
+        macos_widget_layout.addWidget(self.macos_value)
+        macos_widget_layout.addStretch()
+        
+        self.config_card.addGroup(
+            FluentIcon.GLOBE,
+            "macOS Version",
+            "Target operating system version",
+            macos_widget
+        )
+
+        # SMBIOS Model group
+        smbios_widget = QWidget()
+        smbios_widget_layout = QHBoxLayout(smbios_widget)
+        smbios_widget_layout.setContentsMargins(0, 0, 0, 0)
+        self.smbios_value = BodyLabel(self.controller.smbios_model_text if hasattr(self.controller, 'smbios_model_text') else "Not selected")
+        self.smbios_value.setStyleSheet(f"color: {COLORS['text_secondary']};")
+        smbios_widget_layout.addWidget(self.smbios_value)
+        smbios_widget_layout.addStretch()
+        
+        self.config_card.addGroup(
+            FluentIcon.TAG,
+            "SMBIOS Model",
+            "System identifier for macOS",
+            smbios_widget
+        )
+
+        # Disabled Devices - display each device vertically
+        disabled_devices = self.controller.disabled_devices if hasattr(self.controller, 'disabled_devices') and self.controller.disabled_devices else {}
+        
+        if disabled_devices and len(disabled_devices) > 0:
+            # Add header for disabled devices section
+            header_widget = QWidget()
+            header_layout = QVBoxLayout(header_widget)
+            header_layout.setContentsMargins(0, 0, 0, 0)
+            header_label = BodyLabel("Hardware components excluded from configuration")
+            header_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
+            header_layout.addWidget(header_label)
+            
+            self.config_card.addGroup(
+                FluentIcon.CANCEL,
+                "Disabled Devices",
+                "",
+                header_widget
+            )
+            
+            # Add each disabled device as a separate indented group
+            for device_name in disabled_devices.keys():
+                device_widget = QWidget()
+                device_layout = QVBoxLayout(device_widget)
+                device_layout.setContentsMargins(0, 0, 0, 0)
+                
+                device_group = self.config_card.addGroup(
+                    FluentIcon.INFO,
+                    device_name,
+                    "",
+                    device_widget
+                )
+                
+                # Apply indentation (similar to compatibility_page.py)
+                indent_level = 1
+                base_margin = 24
+                indent = 20 * indent_level
+                device_group.hBoxLayout.setContentsMargins(base_margin + indent, 10, 24, 10)
+        else:
+            # No disabled devices - show success message
+            none_widget = QWidget()
+            none_layout = QVBoxLayout(none_widget)
+            none_layout.setContentsMargins(0, 0, 0, 0)
+            none_label = BodyLabel("All hardware components are compatible and enabled")
+            none_label.setStyleSheet(f"color: {COLORS['success']};")
+            none_layout.addWidget(none_label)
+            
+            self.config_card.addGroup(
+                FluentIcon.ACCEPT,
+                "Disabled Devices",
+                "",
+                none_widget
+            )
+        
+        # Insert the card at position 0 (before customization card)
+        self.cards_layout.insertWidget(0, self.config_card)
 
     def select_macos(self):
         """Select macOS version"""
@@ -314,10 +363,8 @@ class ConfigurationPage(QWidget):
                 f"SMBIOS model updated to {selected_model}", 'success')
 
     def update_display(self):
-        """Update configuration display"""
-        self.macos_value.setText(self.controller.macos_version_text)
-        self.smbios_value.setText(self.controller.smbios_model_text)
-        self.devices_value.setText(self.controller.disabled_devices_text)
+        """Update configuration display by rebuilding the config card"""
+        self._build_config_card()
 
     def refresh(self):
         """Refresh page content"""
