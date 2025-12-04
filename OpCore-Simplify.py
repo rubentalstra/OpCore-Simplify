@@ -200,17 +200,37 @@ class OCPE:
                     return target_version
 
     def build_opencore_efi(self, hardware_report, disabled_devices, smbios_model, macos_version, needs_oclp):
+        # Check which kexts are enabled to determine which steps to show
+        itlwm_enabled = self.k.kexts[kext_maestro.kext_data.kext_index_by_name.get("itlwm")].checked if kext_maestro.kext_data.kext_index_by_name.get("itlwm") else False
+        applealc_enabled = self.k.kexts[kext_maestro.kext_data.kext_index_by_name.get("AppleALC")].checked if kext_maestro.kext_data.kext_index_by_name.get("AppleALC") else False
+        
+        # Build dynamic steps list based on enabled kexts
         steps = [
             "Copying EFI base to results folder",
             "Applying ACPI patches",
-            "Installing and configuring kernel extensions",
-            "Generating config.plist",
-            "Cleaning up unused drivers, resources, and tools"
+            "Installing kernel extensions"
         ]
         
+        # Add WiFi configuration step if itlwm is enabled
+        if itlwm_enabled:
+            steps.append("Extracting WiFi profiles")
+        
+        steps.append("Configuring kernel extensions")
+        
+        # Add codec layout selection step if AppleALC is enabled
+        if applealc_enabled:
+            steps.append("Selecting audio codec layout")
+        
+        steps.extend([
+            "Generating config.plist",
+            "Cleaning up unused drivers, resources, and tools"
+        ])
+        
         title = "Building OpenCore EFI"
+        current_step = 0
 
-        self.u.progress_bar(title, steps, 0)
+        self.u.progress_bar(title, steps, current_step)
+        current_step += 1
         self.u.create_folder(self.result_dir, remove_content=True)
 
         if not os.path.exists(self.k.ock_files_dir):
@@ -225,7 +245,8 @@ class OCPE:
         if not config_data:
             raise Exception("Error: The file {} does not exist.".format(config_file))
         
-        self.u.progress_bar(title, steps, 1)
+        self.u.progress_bar(title, steps, current_step)
+        current_step += 1
         config_data["ACPI"]["Add"] = []
         config_data["ACPI"]["Delete"] = []
         config_data["ACPI"]["Patch"] = []
@@ -255,16 +276,32 @@ class OCPE:
         config_data["ACPI"]["Patch"].extend(self.ac.dsdt_patches)
         config_data["ACPI"]["Patch"] = self.ac.apply_acpi_patches(config_data["ACPI"]["Patch"])
 
-        self.u.progress_bar(title, steps, 2)
+        self.u.progress_bar(title, steps, current_step)
+        current_step += 1
         kexts_directory = os.path.join(self.result_dir, "EFI", "OC", "Kexts")
         self.k.install_kexts_to_efi(macos_version, kexts_directory)
+        
+        # Show WiFi extraction step if itlwm is enabled
+        if itlwm_enabled:
+            self.u.progress_bar(title, steps, current_step)
+            current_step += 1
+        
+        # Load kexts (which also handles WiFi profile extraction internally)
         config_data["Kernel"]["Add"] = self.k.load_kexts(hardware_report, macos_version, kexts_directory)
 
-        self.u.progress_bar(title, steps, 3)
+        self.u.progress_bar(title, steps, current_step)
+        current_step += 1
+        
+        # Show codec layout selection step if AppleALC is enabled
+        if applealc_enabled:
+            self.u.progress_bar(title, steps, current_step)
+            current_step += 1
+        
         self.co.genarate(hardware_report, disabled_devices, smbios_model, macos_version, needs_oclp, self.k.kexts, config_data)
         self.u.write_file(config_file, config_data)
 
-        self.u.progress_bar(title, steps, 4)
+        self.u.progress_bar(title, steps, current_step)
+        current_step += 1
         files_to_remove = []
 
         drivers_directory = os.path.join(self.result_dir, "EFI", "OC", "Drivers")
