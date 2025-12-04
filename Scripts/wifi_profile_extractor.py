@@ -288,18 +288,30 @@ class WifiProfileExtractor:
     def get_profiles(self):
         os_name = platform.system()
 
-        # Check if GUI mode - use dialog
+        # Check if GUI mode - use dialog via thread-safe callback
         if self.utils.gui_callback:
-            # Import here to avoid circular dependencies
-            from Scripts.gui.custom_dialogs import show_wifi_profile_extractor_dialog
+            # Use the thread-safe GUI callback mechanism
+            # This ensures the dialog is shown on the main thread
+            user_wants_scan_result = self.utils.gui_callback(
+                'confirm',
+                'Would you like to scan for WiFi profiles?',
+                {
+                    'title': 'WiFi Profile Extractor',
+                    'message': (
+                        'Note:\n'
+                        '- When using itlwm kext, WiFi appears as Ethernet in macOS\n'
+                        '- You\'ll need Heliport app to manage WiFi connections in macOS\n'
+                        '- This step will enable auto WiFi connections at boot time\n'
+                        '  and is useful for users installing macOS via Recovery OS\n'
+                        '\n'
+                        'Would you like to scan for WiFi profiles?'
+                    ),
+                    'default': 'no'
+                }
+            )
             
-            # Get the parent window from utils if available
-            parent = getattr(self.utils, 'gui_parent', None)
-            
-            # Show the WiFi profile extractor dialog
-            user_wants_scan = show_wifi_profile_extractor_dialog(parent)
-            
-            if not user_wants_scan:
+            # Convert result to boolean
+            if user_wants_scan_result != "yes":
                 return []
         else:
             # CLI mode - use original prompts
