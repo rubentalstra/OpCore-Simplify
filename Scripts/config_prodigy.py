@@ -299,7 +299,7 @@ class ConfigProdigy:
                 gui_choices.append({
                     'value': str(layout.id),
                     'label': f"ID {layout.id}",
-                    'description': layout.comment[:100]
+                    'description': (layout.comment or '')[:100]
                 })
             
             gui_options = {
