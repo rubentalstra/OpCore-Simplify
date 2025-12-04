@@ -146,25 +146,30 @@ class OpCoreGUI(FluentWindow):
         self.update_build_progress_signal.connect(self._update_build_progress_on_main_thread)
         self.update_gathering_progress_signal.connect(self._update_gathering_progress_on_main_thread)
 
-        # Set up GUI callbacks
+        # Set up GUI handlers - using new direct handler approach
         self.ocpe.ac.gui_folder_callback = self.select_acpi_folder_gui
-        self.ocpe.u.gui_callback = self.handle_gui_prompt_threadsafe
-        self.ocpe.u.gui_parent = self
+        
+        # Set gui_handler to self for all utils instances (new direct dialog approach)
+        self.ocpe.u.gui_handler = self
         self.ocpe.u.gui_progress_callback = self.update_build_progress_threadsafe
         self.ocpe.u.gui_gathering_progress_callback = self.update_gathering_progress_threadsafe
-        self.ocpe.h.utils.gui_callback = self.handle_gui_prompt_threadsafe
-        self.ocpe.h.utils.gui_parent = self
-        self.ocpe.k.utils.gui_callback = self.handle_gui_prompt_threadsafe
-        self.ocpe.k.utils.gui_parent = self
-        self.ocpe.c.utils.gui_callback = self.handle_gui_prompt_threadsafe
-        self.ocpe.c.utils.gui_parent = self
-        self.ocpe.co.utils.gui_callback = self.handle_gui_prompt_threadsafe
-        self.ocpe.co.utils.gui_parent = self
-        self.ocpe.o.utils.gui_callback = self.handle_gui_prompt_threadsafe
-        self.ocpe.o.utils.gui_parent = self
+        
+        self.ocpe.h.utils.gui_handler = self
+        self.ocpe.k.utils.gui_handler = self
+        self.ocpe.c.utils.gui_handler = self
+        self.ocpe.co.utils.gui_handler = self
+        self.ocpe.o.utils.gui_handler = self
         self.ocpe.o.utils.gui_gathering_progress_callback = self.update_gathering_progress_threadsafe
+        self.ocpe.ac.utils.gui_handler = self
+        
+        # Keep old gui_callback for backward compatibility during migration
+        self.ocpe.u.gui_callback = self.handle_gui_prompt_threadsafe
+        self.ocpe.h.utils.gui_callback = self.handle_gui_prompt_threadsafe
+        self.ocpe.k.utils.gui_callback = self.handle_gui_prompt_threadsafe
+        self.ocpe.c.utils.gui_callback = self.handle_gui_prompt_threadsafe
+        self.ocpe.co.utils.gui_callback = self.handle_gui_prompt_threadsafe
+        self.ocpe.o.utils.gui_callback = self.handle_gui_prompt_threadsafe
         self.ocpe.ac.utils.gui_callback = self.handle_gui_prompt_threadsafe
-        self.ocpe.ac.utils.gui_parent = self
 
         self.init_navigation()
 

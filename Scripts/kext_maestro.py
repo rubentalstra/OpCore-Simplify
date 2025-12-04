@@ -410,46 +410,41 @@ class KextMaestro:
                 if "Beta" in os_data.get_macos_name_by_darwin(macos_version):
                     print("\033[91mImportant:\033[0m For macOS Beta versions, only itlwm kext is supported")
                     print("")
-                    # Show info dialog in GUI mode with full context, press enter in CLI mode
-                    gui_options = {
-                        'title': 'Intel WiFi Kext - Beta Version',
-                        'message': intel_wifi_info + '\n\nImportant: For macOS Beta versions, only itlwm kext is supported.\n\nitlwm will be automatically selected.'
-                    }
-                    self.utils.request_input("Press Enter to continue...", gui_type='info', gui_options=gui_options)
+                    # Show info dialog with full context
+                    message = intel_wifi_info + '\n\nImportant: For macOS Beta versions, only itlwm kext is supported.\n\nitlwm will be automatically selected.'
+                    self.utils.show_info_dialog('Intel WiFi Kext - Beta Version', message)
                     selected_option = recommended_option
                 elif self.utils.parse_darwin_version(macos_version) >= self.utils.parse_darwin_version("25.0.0"):
                     print("\033[91mImportant:\033[0m For macOS Tahoe 26, only itlwm kext is supported")
                     print("")
-                    # Show info dialog in GUI mode with full context, press enter in CLI mode
-                    gui_options = {
-                        'title': 'Intel WiFi Kext - macOS Tahoe 26',
-                        'message': intel_wifi_info + '\n\nImportant: For macOS Tahoe 26, only itlwm kext is supported.\n\nitlwm will be automatically selected.'
-                    }
-                    self.utils.request_input("Press Enter to continue...", gui_type='info', gui_options=gui_options)
+                    # Show info dialog with full context
+                    message = intel_wifi_info + '\n\nImportant: For macOS Tahoe 26, only itlwm kext is supported.\n\nitlwm will be automatically selected.'
+                    self.utils.show_info_dialog('Intel WiFi Kext - macOS Tahoe 26', message)
                     selected_option = recommended_option
                 else:
-                    # Build GUI options
-                    gui_options = {
-                        'title': 'Select WiFi Kext',
-                        'message': 'Intel WiFi devices have two available kext options.\n\nChoose the one that best fits your needs:',
-                        'choices': [
-                            {
-                                'value': '1',
-                                'label': 'AirportItlwm',
-                                'description': '• Uses native WiFi settings menu\n• Provides Handoff, Universal Clipboard, Location Services, Instant Hotspot\n• Supports enterprise-level security\n• Note: Since macOS Sonoma 14, iServices may not work without OCLP root patch'
-                            },
-                            {
-                                'value': '2',
-                                'label': 'itlwm',
-                                'description': '• More stable overall\n• Works with HeliPort app (not native WiFi menu)\n• No Apple Continuity features\n• No enterprise-level security support\n• Can connect to Hidden Networks'
-                            }
-                        ],
-                        'default': str(recommended_option),
-                        'note': 'Since macOS Sonoma 14, iServices may not work with AirportItlwm unless using OCLP root patch' if self.utils.parse_darwin_version(macos_version) >= self.utils.parse_darwin_version("23.0.0") else None
-                    }
-                    kext_option = self.utils.request_input("Select kext for your Intel WiFi device (default: {}): ".format(recommended_name), 
-                                                          gui_type='choice', 
-                                                          gui_options=gui_options).strip() or str(recommended_option)
+                    # Build choice list for dialog
+                    choices = [
+                        {
+                            'value': '1',
+                            'label': 'AirportItlwm',
+                            'description': '• Uses native WiFi settings menu\n• Provides Handoff, Universal Clipboard, Location Services, Instant Hotspot\n• Supports enterprise-level security\n• Note: Since macOS Sonoma 14, iServices may not work without OCLP root patch'
+                        },
+                        {
+                            'value': '2',
+                            'label': 'itlwm',
+                            'description': '• More stable overall\n• Works with HeliPort app (not native WiFi menu)\n• No Apple Continuity features\n• No enterprise-level security support\n• Can connect to Hidden Networks'
+                        }
+                    ]
+                    
+                    note = 'Since macOS Sonoma 14, iServices may not work with AirportItlwm unless using OCLP root patch' if self.utils.parse_darwin_version(macos_version) >= self.utils.parse_darwin_version("23.0.0") else None
+                    
+                    kext_option = self.utils.show_choice_dialog(
+                        'Select WiFi Kext',
+                        'Intel WiFi devices have two available kext options.\n\nChoose the one that best fits your needs:',
+                        choices,
+                        default_value=str(recommended_option),
+                        note=note
+                    ) or str(recommended_option)
                     
                     if kext_option.isdigit() and 0 < int(kext_option) < 3:
                         selected_option = int(kext_option)
@@ -469,16 +464,12 @@ class KextMaestro:
                         print("\033[1;93mNote:\033[0m Since macOS Sonoma 14, iServices won't work with AirportItlwm without patches")
                         print("")
                         
-                        gui_options = {
-                            'title': 'Apply OCLP Root Patch',
-                            'message': 'Since macOS Sonoma 14, iServices won\'t work with AirportItlwm without patches.\n\nDo you want to apply OpenCore Legacy Patcher root patch to fix iServices?',
-                            'default': 'no'
-                        }
-                        
                         while True:
-                            option = self.utils.request_input("Apply OCLP root patch to fix iServices? (yes/No): ", 
-                                                            gui_type='confirm',
-                                                            gui_options=gui_options).strip().lower()
+                            option = self.utils.show_question_dialog(
+                                'Apply OCLP Root Patch',
+                                'Since macOS Sonoma 14, iServices won\'t work with AirportItlwm without patches.\n\nDo you want to apply OpenCore Legacy Patcher root patch to fix iServices?',
+                                default='no'
+                            )
                             if option == "yes" or option == "no":
                                 break
                             else:
