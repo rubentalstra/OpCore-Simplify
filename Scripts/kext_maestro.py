@@ -178,29 +178,27 @@ class KextMaestro:
                     print("   • Alternative if OCLP is not desired")
                     print("")
                     
-                    gui_options = {
-                        'title': 'Select Audio Kext',
-                        'message': 'Since macOS Tahoe 26 DP2, Apple has removed AppleHDA kext.\n\nChoose your audio solution:',
-                        'choices': [
-                            {
-                                'value': '1',
-                                'label': 'AppleALC',
-                                'description': '• High quality native audio\n• Requires AppleHDA rollback with OpenCore Legacy Patcher\n• Recommended for best audio experience'
-                            },
-                            {
-                                'value': '2',
-                                'label': 'VoodooHDA',
-                                'description': '• Lower audio quality\n• Manual injection to /Library/Extensions required\n• No OCLP dependency\n• Alternative if OCLP is not desired'
-                            }
-                        ],
-                        'default': '1',
-                        'warning': 'AppleALC requires OpenCore Legacy Patcher for AppleHDA rollback'
-                    }
+                    choices = [
+                        {
+                            'value': '1',
+                            'label': 'AppleALC',
+                            'description': '• High quality native audio\n• Requires AppleHDA rollback with OpenCore Legacy Patcher\n• Recommended for best audio experience'
+                        },
+                        {
+                            'value': '2',
+                            'label': 'VoodooHDA',
+                            'description': '• Lower audio quality\n• Manual injection to /Library/Extensions required\n• No OCLP dependency\n• Alternative if OCLP is not desired'
+                        }
+                    ]
                     
                     while True:
-                        kext_option = self.utils.request_input("Select audio kext for your system: ",
-                                                             gui_type='choice',
-                                                             gui_options=gui_options).strip()
+                        kext_option = self.utils.show_choice_dialog(
+                            'Select Audio Kext',
+                            'Since macOS Tahoe 26 DP2, Apple has removed AppleHDA kext.\n\nChoose your audio solution:',
+                            choices,
+                            default_value='1',
+                            warning='AppleALC requires OpenCore Legacy Patcher for AppleHDA rollback'
+                        ) or ''
                         if kext_option in ['1', '2']:
                             break
                         else:
@@ -317,17 +315,13 @@ class KextMaestro:
                             'description': '• No GPU kext will be installed\n• May work for some systems without GPU acceleration'
                         })
                     
-                    gui_options = {
-                        'title': 'Select AMD GPU Kext',
-                        'message': f'Select kext for your AMD {gpu_props.get("Codename")} GPU.\n\nNote: Since macOS Tahoe 26, WhateverGreen has known connector patching issues.',
-                        'choices': gui_choices,
-                        'default': str(recommended_option),
-                        'warning': black_screen_warning
-                    }
-                    
-                    kext_option = self.utils.request_input("Select kext for your AMD {} GPU (default: {}): ".format(gpu_props.get("Codename"), recommended_name),
-                                                          gui_type='choice',
-                                                          gui_options=gui_options).strip() or str(recommended_option)
+                    kext_option = self.utils.show_choice_dialog(
+                        'Select AMD GPU Kext',
+                        f'Select kext for your AMD {gpu_props.get("Codename")} GPU.\n\nNote: Since macOS Tahoe 26, WhateverGreen has known connector patching issues.',
+                        gui_choices,
+                        default_value=str(recommended_option),
+                        warning=black_screen_warning
+                    ) or str(recommended_option)
                     
                     if kext_option.isdigit() and 0 < int(kext_option) < max_option + 1:
                         selected_option = int(kext_option)
@@ -823,16 +817,15 @@ class KextMaestro:
             kext_list = "\n".join([f"  • {kext_name}{' (Lilu Plugin)' if is_lilu else ''}" 
                                   for kext_name, is_lilu in incompatible_kexts])
             
-            gui_options = {
-                'title': 'Kext Compatibility Warning',
-                'message': f'The following kexts are incompatible with macOS version {target_darwin_version}:\n\n{kext_list}\n\nWith Lilu plugins, using the "-lilubetaall" boot argument will force them to load.\n\nForcing unsupported kexts can cause system instability. Proceed with caution.\n\nDo you want to force load {"these kexts" if len(incompatible_kexts) > 1 else "this kext"} on the unsupported macOS version?',
-                'default': 'no',
-                'warning': 'This may cause system instability!'
-            }
+            kext_list = "\n".join([f"  • {kext.name}" for kext in incompatible_kexts])
+            message = f'The following kexts are incompatible with macOS version {target_darwin_version}:\n\n{kext_list}\n\nWith Lilu plugins, using the "-lilubetaall" boot argument will force them to load.\n\nForcing unsupported kexts can cause system instability. Proceed with caution.\n\nDo you want to force load {"these kexts" if len(incompatible_kexts) > 1 else "this kext"} on the unsupported macOS version?'
             
-            option = self.utils.request_input("Do you want to force load {} on the unsupported macOS version? (yes/No): ".format("these kexts" if len(incompatible_kexts) > 1 else "this kext"),
-                                            gui_type='confirm',
-                                            gui_options=gui_options)
+            option = self.utils.show_question_dialog(
+                'Kext Compatibility Warning',
+                message,
+                default='no',
+                warning='This may cause system instability!'
+            )
             
             if option.lower() == "yes":
                 return True
