@@ -233,16 +233,12 @@ class ConfigurationPage(QWidget):
             
             # Add each disabled device as a separate indented group
             for device_name in disabled_devices.keys():
-                device_widget = QWidget()
-                device_layout = QVBoxLayout(device_widget)
-                device_layout.setContentsMargins(0, 0, 0, 0)
-                
                 add_group_with_indent(
                     self.config_card,
                     FluentIcon.INFO,
                     device_name,
                     "",
-                    device_widget,
+                    None,  # No custom widget needed
                     indent_level=1
                 )
         else:
