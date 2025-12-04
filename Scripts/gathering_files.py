@@ -218,6 +218,12 @@ class gatheringFiles:
                 
                 if is_latest_id and folder_is_valid:
                     # Skip this product - already up to date
+                    if self.utils.gui_callback:
+                        # In GUI mode, just print a brief message
+                        print(f"✓ {product_name} already up to date")
+                    else:
+                        # In CLI mode, show the standard message
+                        print(f"\nLatest version of {product_name} already downloaded.")
                     continue
             
             # Add to products to download list

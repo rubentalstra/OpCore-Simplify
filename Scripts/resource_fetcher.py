@@ -18,6 +18,8 @@ else:
     from urllib2 import urlopen, Request, URLError
 
 MAX_ATTEMPTS = 3
+RETRY_DELAY_SECONDS = 2
+STALL_TIMEOUT_SECONDS = 60
 
 class ResourceFetcher:
     def __init__(self, headers=None, utils_instance=None):
@@ -115,7 +117,7 @@ class ResourceFetcher:
         speeds = []
         
         # Stall detection variables
-        stall_timeout = 60  # 60 seconds without progress = stalled
+        stall_timeout = STALL_TIMEOUT_SECONDS
         last_progress_time = time.time()
         last_progress_bytes = 0
 
@@ -207,7 +209,7 @@ class ResourceFetcher:
 
             if not response:
                 print(f"Failed to fetch content from {resource_url}. Retrying...")
-                time.sleep(2)  # Brief delay before retry
+                time.sleep(RETRY_DELAY_SECONDS)
                 continue
 
             try:
@@ -219,11 +221,11 @@ class ResourceFetcher:
                     os.remove(destination_path)
                 if attempt < MAX_ATTEMPTS:
                     print(f"Retrying download (attempt {attempt + 1}/{MAX_ATTEMPTS})...")
-                    time.sleep(2)  # Brief delay before retry
+                    time.sleep(RETRY_DELAY_SECONDS)
                     continue
                 else:
-                    # Final attempt failed, exit loop
-                    break
+                    # Final attempt failed, return False to indicate failure
+                    return False
 
             if os.path.exists(destination_path) and os.path.getsize(destination_path) > 0:
                 if sha256_hash:
@@ -235,7 +237,7 @@ class ResourceFetcher:
                     else:
                         print("Checksum mismatch! Removing file and retrying download...")
                         os.remove(destination_path)
-                        time.sleep(2)  # Brief delay before retry
+                        time.sleep(RETRY_DELAY_SECONDS)
                         continue
                 else:
                     print("No SHA256 hash provided. Downloading file without verification.")
@@ -246,7 +248,7 @@ class ResourceFetcher:
 
             if attempt < MAX_ATTEMPTS:
                 print(f"Download failed for {resource_url}. Retrying...")
-                time.sleep(2)  # Brief delay before retry
+                time.sleep(RETRY_DELAY_SECONDS)
 
         print(f"Failed to download {resource_url} after {MAX_ATTEMPTS} attempts.")
         return False
