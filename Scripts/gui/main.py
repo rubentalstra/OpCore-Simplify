@@ -366,11 +366,8 @@ class OpCoreGUI(FluentWindow):
         # Emit signal to main thread
         self.gui_prompt_signal.emit(prompt_type, prompt_text, options, (result_holder, event))
         
-        # Wait for result from main thread with a 30-second timeout to prevent deadlock
-        if not event.wait(timeout=30.0):
-            # Timeout occurred - return None to prevent hanging
-            print("Warning: GUI prompt timed out after 30 seconds")
-            return None
+        # Wait for result from main thread without timeout - dialogs should wait for user interaction
+        event.wait(timeout=None)
         
         return result_holder['result']
     
