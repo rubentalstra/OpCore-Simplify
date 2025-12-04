@@ -351,20 +351,20 @@ class WifiProfileExtractor:
             # Only show "Press Enter to continue" prompt in CLI mode
             if not self.utils.gui_callback:
                 self.utils.request_input()
-        
-        self.utils.head("WiFi Profile Extractor")
-        print("")
-        print("Found the following WiFi profiles with saved passwords:")
-        print("")
-        print("Index  SSID                             Password")
-        print("-------------------------------------------------------")
-        for index, (ssid, password) in enumerate(profiles, start=1):
-            print("{:<6} {:<32} {:<8}".format(index, ssid[:31] + "..." if len(ssid) > 31 else ssid, password[:12] + "..." if len(password) > 12 else password))
-        print("")
-        print("Successfully applied {} WiFi profiles.".format(len(profiles)))
-        print("")
-        
-        # Only show "Press Enter to continue" prompt in CLI mode
-        if not self.utils.gui_callback:
-            self.utils.request_input()
+        else:
+            self.utils.head("WiFi Profile Extractor")
+            print("")
+            print("Found the following WiFi profiles with saved passwords:")
+            print("")
+            print("Index  SSID                             Password")
+            print("-------------------------------------------------------")
+            for index, (ssid, password) in enumerate(profiles, start=1):
+                print("{:<6} {:<32} {:<8}".format(index, ssid[:31] + "..." if len(ssid) > 31 else ssid, password[:12] + "..." if len(password) > 12 else password))
+            print("")
+            print("Successfully applied {} WiFi profiles.".format(len(profiles)))
+            print("")
+            
+            # Only show "Press Enter to continue" prompt in CLI mode
+            if not self.utils.gui_callback:
+                self.utils.request_input()
         return profiles
