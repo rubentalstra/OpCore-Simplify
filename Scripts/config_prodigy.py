@@ -273,6 +273,7 @@ class ConfigProdigy:
         default_layout = random.choice(recommended_layouts or available_layouts)
 
         while True:
+            # Build content for CLI mode
             contents = []
             contents.append("")
             contents.append("List of Codec Layouts:")
@@ -292,10 +293,33 @@ class ConfigProdigy:
             contents.append("")
             content = "\n".join(contents)
 
-            self.utils.adjust_window_size(content)
-            self.utils.head("Choosing Codec Layout ID", resize=False)
-            print(content)
-            selected_layout_id = self.utils.request_input(f"Enter the ID of the codec layout you want to use (default: {default_layout.id}): ") or default_layout.id
+            # Build GUI options for dialog
+            gui_choices = []
+            for layout in available_layouts:
+                gui_choices.append({
+                    'value': str(layout.id),
+                    'label': f"ID {layout.id}",
+                    'description': layout.comment[:100]
+                })
+            
+            gui_options = {
+                'title': 'Choosing Codec Layout ID',
+                'message': 'Select the audio codec layout for your system.\n\nNote:\n- The default layout may not be optimal.\n- Test different layouts to find what works best for your system.',
+                'choices': gui_choices,
+                'default': str(default_layout.id)
+            }
+
+            # Show dialog in CLI mode
+            if not self.utils.gui_callback:
+                self.utils.adjust_window_size(content)
+                self.utils.head("Choosing Codec Layout ID", resize=False)
+                print(content)
+            
+            selected_layout_id = self.utils.request_input(
+                f"Enter the ID of the codec layout you want to use (default: {default_layout.id}): ",
+                gui_type='choice',
+                gui_options=gui_options
+            ) or default_layout.id
 
             try:
                 selected_layout_id = int(selected_layout_id)
