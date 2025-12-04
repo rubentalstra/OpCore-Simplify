@@ -85,7 +85,7 @@ class gatheringFiles:
     
     def move_bootloader_kexts_to_product_directory(self, product_name):
         if not os.path.exists(self.temporary_dir):
-            raise FileNotFoundError("The directory {} does not exist.".format(self.temporary_dir))
+            raise FileNotFoundError(f"The directory {self.temporary_dir} does not exist.")
         
         temp_product_dir = os.path.join(self.temporary_dir, product_name)
         
@@ -195,7 +195,7 @@ class gatheringFiles:
             
             if product_download_index is None:
                 print("\n")
-                print("Could not find download URL for {}.".format(product_name))
+                print(f"Could not find download URL for {product_name}.")
                 continue
 
             product_info = download_database[product_download_index]
@@ -255,25 +255,14 @@ class gatheringFiles:
                 }
                 self.utils.gui_gathering_progress_callback(progress_info)
 
-            
-            # Update progress for GUI mode
-            if self.utils.gui_callback and hasattr(self.utils, 'gui_gathering_progress_callback'):
-                progress_info = {
-                    'current': index + 1,
-                    'total': total_products,
-                    'product_name': product_name,
-                    'status': 'downloading'
-                }
-                self.utils.gui_gathering_progress_callback(progress_info)
-
             print("")
-            print("Downloading {}/{}: {}".format(index + 1, total_products, product_name))
+            print(f"Downloading {index + 1}/{total_products}: {product_name}")
             if product_download_url:
-                print("from {}".format(product_download_url))
+                print(f"from {product_download_url}")
                 print("")
             else:
                 print("")
-                print("Could not find download URL for {}.".format(product_name))
+                print(f"Could not find download URL for {product_name}.")
                 print("")
                 # Only show "Press Enter to continue" prompt in CLI mode
                 if not self.utils.gui_callback:
@@ -285,12 +274,12 @@ class gatheringFiles:
             if not self.fetcher.download_and_save_file(product_download_url, zip_path, sha256_hash):
                 folder_is_valid, _ = self.integrity_checker.verify_folder_integrity(asset_dir, manifest_path)
                 if product_history_index is not None and folder_is_valid:
-                    print("Using previously downloaded version of {}.".format(product_name))
+                    print(f"Using previously downloaded version of {product_name}.")
                     continue
                 else:
-                    raise Exception("Could not download {} at this time. Please try again later.".format(product_name))
+                    raise Exception(f"Could not download {product_name} at this time. Please try again later.")
             
-            print("Extracting {}...".format(product_name))
+            print(f"Extracting {product_name}...")
             self.utils.extract_zip_file(zip_path)
             self.utils.create_folder(asset_dir, remove_content=True)
             
@@ -318,7 +307,7 @@ class gatheringFiles:
                 oc_binary_data_zip_path = os.path.join(self.temporary_dir, "OcBinaryData.zip")
                 print("")
                 print("Downloading OcBinaryData...")
-                print("from {}".format(self.ocbinarydata_url))
+                print(f"from {self.ocbinarydata_url}")
                 print("")
                 self.fetcher.download_and_save_file(self.ocbinarydata_url, oc_binary_data_zip_path)
 
@@ -345,7 +334,7 @@ class gatheringFiles:
                 }
                 self.utils.gui_gathering_progress_callback(progress_info)
             
-            print("Processing {}...".format(product_name))
+            print(f"Processing {product_name}...")
             if self.move_bootloader_kexts_to_product_directory(product_name):
                 self.integrity_checker.generate_folder_manifest(asset_dir, manifest_path)
                 self._update_download_history(download_history, product_name, product_id, product_download_url, sha256_hash)
@@ -373,7 +362,7 @@ class gatheringFiles:
             return response["Kernel"]["Patch"]
         except: 
             print("")
-            print("Unable to download {} at this time".format(patches_name))
+            print(f"Unable to download {patches_name} at this time")
             print("from " + patches_url)
             print("")
             print("Please try again later or apply them manually.")
@@ -429,11 +418,11 @@ class gatheringFiles:
 
         if not all([product_id, product_download_url, sha256_hash]):
             print("")
-            print("Could not find release information for {}.".format(PRODUCT_NAME))
+            print(f"Could not find release information for {PRODUCT_NAME}.")
             print("Please try again later.")
             print("")
             self.utils.request_input()
-            raise Exception("Could not find release information for {}.".format(PRODUCT_NAME))
+            raise Exception(f"Could not find release information for {PRODUCT_NAME}.")
 
         download_history = self.utils.read_file(self.download_history_file)
         if not isinstance(download_history, list):
@@ -452,22 +441,22 @@ class gatheringFiles:
 
             if is_latest_id and file_is_valid:
                 print("")
-                print("Latest version of {} already downloaded.".format(PRODUCT_NAME))
+                print(f"Latest version of {PRODUCT_NAME} already downloaded.")
                 return destination_path
 
         print("")
         print("Updating" if product_history_index is not None else "Please wait for download", end=" ")
-        print("{}...".format(PRODUCT_NAME))
+        print(f"{PRODUCT_NAME}...")
         print("")
-        print("from {}".format(product_download_url))
+        print(f"from {product_download_url}")
         print("")
         
         if not self.fetcher.download_and_save_file(product_download_url, destination_path, sha256_hash):
             manual_download_url = f"https://github.com/{REPO_OWNER}/{REPO_NAME}/releases/latest"
-            print("Go to {} to download {} manually.".format(manual_download_url, PRODUCT_NAME))
+            print(f"Go to {manual_download_url} to download {PRODUCT_NAME} manually.")
             print("")
             self.utils.request_input()
-            raise Exception("Failed to download {}.".format(PRODUCT_NAME))
+            raise Exception(f"Failed to download {PRODUCT_NAME}.")
 
         self._update_download_history(download_history, PRODUCT_NAME, product_id, product_download_url, sha256_hash)
         

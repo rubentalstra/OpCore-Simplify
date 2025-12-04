@@ -554,7 +554,7 @@ class OpCoreGUI(FluentWindow):
         # Update build log with gathering information (less verbose for GUI)
         if self.build_log:
             if status == 'complete':
-                self.build_log.append(f"\n✓ All files gathered successfully!")
+                self.build_log.append("\n✓ All files gathered successfully!")
             elif status == 'downloading':
                 # Only log every file download to keep it concise
                 self.build_log.append(f"⬇ {current}/{total}: {product_name}")
