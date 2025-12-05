@@ -830,10 +830,21 @@ class SettingsPage(QWidget):
     def get_git_version(self):
         """Get the git SHA version of the software"""
         try:
-            # Get the directory of the script (3 levels up from this file)
+            # Get the directory of the script (3 levels up from this file to reach project root)
             script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
             
-            # Try to get the git SHA
+            # First, try to read from sha_version.txt file
+            sha_version_file = os.path.join(script_dir, 'sha_version.txt')
+            if os.path.exists(sha_version_file):
+                try:
+                    with open(sha_version_file, 'r') as f:
+                        version = f.read().strip()
+                        if version:
+                            return version
+                except Exception:
+                    pass  # Fall through to git command
+            
+            # Fallback: Try to get the git SHA using git command
             result = subprocess.run(
                 ['git', 'rev-parse', '--short', 'HEAD'],
                 cwd=script_dir,
