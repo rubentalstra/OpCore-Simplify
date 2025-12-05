@@ -4,6 +4,7 @@ Contains all 27 configurable settings across 9 categories
 """
 
 import os
+import subprocess
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog
 )
@@ -93,6 +94,23 @@ class SettingsPage(QWidget):
         scroll_layout.addStretch()
         scroll.setWidget(scroll_content)
         layout.addWidget(scroll)
+        
+        # Version information
+        version_layout = QHBoxLayout()
+        version_layout.setContentsMargins(10, 10, 10, 5)
+        
+        version_label = BodyLabel("Version:")
+        version_label.setStyleSheet("font-weight: bold;")
+        version_layout.addWidget(version_label)
+        
+        # Get git SHA version
+        git_sha = self.get_git_version()
+        version_value = BodyLabel(git_sha)
+        version_value.setStyleSheet(f"color: {COLORS['text_secondary']}; font-family: 'Courier New', monospace;")
+        version_layout.addWidget(version_value)
+        
+        version_layout.addStretch()
+        layout.addLayout(version_layout)
         
         # Reset button at bottom
         reset_layout = QHBoxLayout()
@@ -808,3 +826,40 @@ class SettingsPage(QWidget):
             duration=2000,
             parent=self.controller
         )
+    
+    def get_git_version(self):
+        """Get the git SHA version of the software"""
+        try:
+            # Get the directory of the script (3 levels up from this file)
+            script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            
+            # Try to get the git SHA
+            result = subprocess.run(
+                ['git', 'rev-parse', '--short', 'HEAD'],
+                cwd=script_dir,
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            
+            if result.returncode == 0:
+                git_sha = result.stdout.strip()
+                
+                # Check if there are uncommitted changes
+                status_result = subprocess.run(
+                    ['git', 'status', '--porcelain'],
+                    cwd=script_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=2
+                )
+                
+                if status_result.returncode == 0 and status_result.stdout.strip():
+                    # There are uncommitted changes
+                    return f"{git_sha}-modified"
+                
+                return git_sha
+            else:
+                return "unknown"
+        except Exception:
+            return "unknown"
