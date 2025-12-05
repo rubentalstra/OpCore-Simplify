@@ -8,7 +8,7 @@ from PyQt6.QtGui import QFont
 from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel, CardWidget, TextEdit,
     StrongBodyLabel, ScrollArea, FluentIcon, IconWidget, GroupHeaderCardWidget,
-    TitleLabel, CaptionLabel, ExpandLayout, setFont
+    TitleLabel, ExpandLayout, setFont
 )
 
 from ..styles import COLORS, SPACING
@@ -132,7 +132,7 @@ class CompatibilityPage(ScrollArea):
         self.expandLayout.setSpacing(28)
         self.expandLayout.setContentsMargins(36, 10, 36, 0)
 
-        # macOS version support card - positioned at the top right of content area
+        # macOS version support card - positioned at the top of content area
         self.macos_version_card = CardWidget(self.scrollWidget)
         self.macos_version_card.setFixedWidth(320)
         self.macos_version_card.setVisible(False)  # Hidden until data is loaded
@@ -261,12 +261,19 @@ class CompatibilityPage(ScrollArea):
 
     def update_display(self):
         """Update compatibility display with GroupHeaderCardWidget for better organization"""
-        # Clear existing cards (except the macOS version card at index 0)
-        # Keep removing items after the macOS version card until only it remains
-        while self.expandLayout.count() > 1:
-            item = self.expandLayout.takeAt(1)
-            if item.widget():
+        # Clear existing cards (except the macOS version card which is the first widget)
+        # Store reference to widgets we want to keep
+        widgets_to_keep = {self.macos_version_card}
+        
+        # Remove all widgets except those we want to keep
+        while self.expandLayout.count() > 0:
+            item = self.expandLayout.takeAt(0)
+            if item.widget() and item.widget() not in widgets_to_keep:
                 item.widget().deleteLater()
+            elif item.widget() in widgets_to_keep:
+                # Re-add the widget we want to keep
+                self.expandLayout.addWidget(item.widget())
+                break
 
         if not self.controller.hardware_report:
             self.placeholder_label = BodyLabel(
