@@ -51,9 +51,9 @@ class SettingsPage(QWidget):
         subtitle_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
         layout.addWidget(subtitle_label)
         
-        # Category count
+        # Category count with helpful info
         category_info = CaptionLabel(
-            "27 settings organized across 9 categories")
+            "27 settings organized across 9 categories • Changes are saved automatically")
         category_info.setStyleSheet(f"color: {COLORS['text_tertiary']};")
         layout.addWidget(category_info)
 
@@ -113,19 +113,23 @@ class SettingsPage(QWidget):
 
         # Bottom section with version and reset button
         bottom_layout = QHBoxLayout()
-        bottom_layout.setContentsMargins(0, SPACING['medium'], 0, 0)
+        bottom_layout.setContentsMargins(0, SPACING['large'], 0, 0)
+        bottom_layout.setSpacing(SPACING['medium'])
 
-        # Version information
-        version_label = BodyLabel("Version:")
-        version_label.setStyleSheet("font-weight: bold;")
-        bottom_layout.addWidget(version_label)
+        # Version information with better styling
+        version_container = QHBoxLayout()
+        version_container.setSpacing(SPACING['small'])
+        
+        version_label = StrongBodyLabel("Version:")
+        version_container.addWidget(version_label)
 
         git_sha = self.get_git_version()
-        version_value = BodyLabel(git_sha)
+        version_value = CaptionLabel(git_sha)
         version_value.setStyleSheet(
             f"color: {COLORS['text_secondary']}; font-family: 'Courier New', monospace;")
-        bottom_layout.addWidget(version_value)
-
+        version_container.addWidget(version_value)
+        
+        bottom_layout.addLayout(version_container)
         bottom_layout.addStretch()
 
         # Reset button
