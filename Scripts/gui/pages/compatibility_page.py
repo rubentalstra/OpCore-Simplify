@@ -94,6 +94,8 @@ class CompatibilityPage(ScrollArea):
         self.controller = parent
         self.scrollWidget = QWidget()
         self.expandLayout = ExpandLayout(self.scrollWidget)
+        # Explicitly set the layout on the scroll widget to ensure proper display
+        self.scrollWidget.setLayout(self.expandLayout)
         self.setup_ui()
 
     def setup_ui(self):
@@ -596,6 +598,11 @@ class CompatibilityPage(ScrollArea):
 
         # Update the macOS version card in the header
         self.update_macos_version_card()
+        
+        # Force layout update to ensure widgets are displayed
+        self.expandLayout.update()
+        self.scrollWidget.updateGeometry()
+        self.update()
 
     def refresh(self):
         """Refresh page content"""
