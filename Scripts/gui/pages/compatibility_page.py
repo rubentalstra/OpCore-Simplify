@@ -291,7 +291,7 @@ class CompatibilityPage(ScrollArea):
 
         # CPU Card
         if 'CPU' in report:
-            cpu_card = GroupHeaderCardWidget("CPU", self)
+            cpu_card = GroupHeaderCardWidget("CPU", self.scrollWidget)
             cpu_info = report['CPU']
 
             if isinstance(cpu_info, dict):
@@ -337,7 +337,7 @@ class CompatibilityPage(ScrollArea):
 
         # GPU Card
         if 'GPU' in report and report['GPU']:
-            gpu_card = GroupHeaderCardWidget("Graphics", self)
+            gpu_card = GroupHeaderCardWidget("Graphics", self.scrollWidget)
 
             for idx, (gpu_name, gpu_info) in enumerate(report['GPU'].items()):
                 # GPU Name and Type group (main item - no indent)
@@ -400,7 +400,7 @@ class CompatibilityPage(ScrollArea):
 
         # Sound Card
         if 'Sound' in report and report['Sound']:
-            sound_card = GroupHeaderCardWidget("Audio", self)
+            sound_card = GroupHeaderCardWidget("Audio", self.scrollWidget)
 
             for audio_device, audio_props in report['Sound'].items():
                 # Audio Device group (main item - no indent)
@@ -439,7 +439,7 @@ class CompatibilityPage(ScrollArea):
 
         # Network Card
         if 'Network' in report and report['Network']:
-            network_card = GroupHeaderCardWidget("Network", self)
+            network_card = GroupHeaderCardWidget("Network", self.scrollWidget)
 
             for device_name, device_props in report['Network'].items():
                 # Network Device group (main item - no indent)
@@ -508,7 +508,7 @@ class CompatibilityPage(ScrollArea):
 
         # Storage Controllers Card
         if 'Storage Controllers' in report and report['Storage Controllers']:
-            storage_card = GroupHeaderCardWidget("Storage", self)
+            storage_card = GroupHeaderCardWidget("Storage", self.scrollWidget)
 
             for controller_name, controller_props in report['Storage Controllers'].items():
                 # Storage Controller group (main item - no indent)
@@ -536,7 +536,7 @@ class CompatibilityPage(ScrollArea):
 
         # Bluetooth Card
         if 'Bluetooth' in report and report['Bluetooth']:
-            bluetooth_card = GroupHeaderCardWidget("Bluetooth", self)
+            bluetooth_card = GroupHeaderCardWidget("Bluetooth", self.scrollWidget)
 
             for bluetooth_name, bluetooth_props in report['Bluetooth'].items():
                 # Bluetooth Device group (main item - no indent)
@@ -564,7 +564,7 @@ class CompatibilityPage(ScrollArea):
 
         # Biometric Card (if exists)
         if 'Biometric' in report and report['Biometric']:
-            bio_card = GroupHeaderCardWidget("Biometric", self)
+            bio_card = GroupHeaderCardWidget("Biometric", self.scrollWidget)
 
             for bio_device, bio_props in report['Biometric'].items():
                 # Biometric Device group (main item - no indent)
