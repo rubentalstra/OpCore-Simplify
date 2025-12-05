@@ -631,6 +631,7 @@ class ConfigProdigy:
                 "debug=0x100",
                 "keepsyms=1"
             ])
+            self.utils.debug_log("Verbose boot arguments enabled")
 
         if needs_oclp and self.utils.parse_darwin_version(macos_version) >= self.utils.parse_darwin_version("25.0.0"):
             boot_args.append("amfi=0x80")
@@ -753,6 +754,9 @@ class ConfigProdigy:
         return uefi_drivers
 
     def genarate(self, hardware_report, disabled_devices, smbios_model, macos_version, needs_oclp, kexts, config):
+        self.utils.debug_log("Starting config generation")
+        self.utils.debug_log(f"SMBIOS Model: {smbios_model}, macOS Version: {macos_version}")
+        
         del config["#WARNING - 1"]
         del config["#WARNING - 2"]
         del config["#WARNING - 3"]

@@ -77,11 +77,14 @@ class SMBIOS:
             print(f"Warning: Could not save preserved SMBIOS: {e}")
 
     def generate_smbios(self, smbios_model):
+        self.utils.debug_log(f"Generating SMBIOS for model: {smbios_model}")
+        
         # Check if we should use preserved SMBIOS
         if self.settings.get_preserve_smbios():
             preserved = self.load_preserved_smbios()
             if preserved and preserved.get("SystemProductName") == smbios_model:
                 print("Using preserved SMBIOS values")
+                self.utils.debug_log(f"Loaded preserved SMBIOS for {smbios_model}")
                 return preserved
         
         # Check if custom SMBIOS values are provided
@@ -100,11 +103,13 @@ class SMBIOS:
                     "SystemUUID": str(uuid.uuid4()).upper(),
                 }
                 print("Using custom SMBIOS values")
+                self.utils.debug_log(f"Using custom SMBIOS: Serial={custom_serial[:4]}..., MLB={custom_mlb[:4]}...")
                 if self.settings.get_preserve_smbios():
                     self.save_preserved_smbios(smbios_data)
                 return smbios_data
         
         # Generate random SMBIOS (default behavior)
+        self.utils.debug_log("Generating random SMBIOS")
         macserial = self.check_macserial()
 
         random_mac_address = self.generate_random_mac()
