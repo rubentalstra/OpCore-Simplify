@@ -17,6 +17,7 @@ from qfluentwidgets import (
 
 from ..styles import COLORS, SPACING
 from ...settings import Settings
+from ...datasets import os_data
 
 
 class SettingsPage(QWidget):
@@ -214,7 +215,7 @@ class SettingsPage(QWidget):
         self.include_beta_card.switchButton.setChecked(
             self.settings.get("include_beta_versions", False))
         self.include_beta_card.switchButton.checkedChanged.connect(
-            lambda checked: self.settings.set("include_beta_versions", checked))
+            lambda checked: [self.settings.set("include_beta_versions", checked), self.update_version_dropdown()])
         group.addSettingCard(self.include_beta_card)
 
         # Preferred macOS version with dropdown
@@ -225,45 +226,9 @@ class SettingsPage(QWidget):
             group
         )
         
-        # Import os_data to get available versions
-        from ...datasets import os_data
-        
         # Create ComboBox with available macOS versions
         self.preferred_version_combo = ComboBox(self)
-        
-        # Add "Auto" as first option
-        version_options = ["Auto"]
-        
-        # Add all macOS versions from the dataset
-        for macos_info in os_data.macos_versions:
-            # Format: "macOS Ventura (13)" for example
-            display_name = f"macOS {macos_info.name} ({macos_info.macos_version})"
-            if macos_info.release_status != "final":
-                display_name += " (Beta)"
-            version_options.append(display_name)
-        
-        self.preferred_version_combo.addItems(version_options)
-        
-        # Set current value
-        current_pref = self.settings.get("preferred_macos_version", "")
-        if current_pref:
-            # Try to find matching version by darwin version
-            matched = False
-            for macos_info in os_data.macos_versions:
-                # Convert darwin version to check (e.g., "23.0.0" -> darwin 23)
-                darwin_str = f"{macos_info.darwin_version}.0.0"
-                if current_pref.startswith(str(macos_info.darwin_version)):
-                    display_name = f"macOS {macos_info.name} ({macos_info.macos_version})"
-                    if macos_info.release_status != "final":
-                        display_name += " (Beta)"
-                    index = version_options.index(display_name) if display_name in version_options else 0
-                    self.preferred_version_combo.setCurrentIndex(index)
-                    matched = True
-                    break
-            if not matched:
-                self.preferred_version_combo.setCurrentIndex(0)  # Auto
-        else:
-            self.preferred_version_combo.setCurrentIndex(0)  # Auto
+        self.update_version_dropdown()
         
         # Connect to save the darwin version when changed
         self.preferred_version_combo.currentTextChanged.connect(self.on_preferred_version_changed)
@@ -273,10 +238,59 @@ class SettingsPage(QWidget):
 
         return group
     
+    def update_version_dropdown(self):
+        """Update the version dropdown based on include_beta_versions setting"""
+        # Save current selection
+        current_text = self.preferred_version_combo.currentText() if hasattr(self, 'preferred_version_combo') else None
+        
+        # Clear and rebuild dropdown
+        self.preferred_version_combo.clear()
+        
+        # Add "Auto" as first option
+        version_options = ["Auto"]
+        
+        # Check if beta versions should be included
+        include_beta = self.settings.get("include_beta_versions", False)
+        
+        # Add macOS versions from the dataset
+        for macos_info in os_data.macos_versions:
+            # Skip beta versions if not enabled
+            if macos_info.release_status != "final" and not include_beta:
+                continue
+            
+            # Format: "macOS Ventura (13)" for example
+            display_name = f"macOS {macos_info.name} ({macos_info.macos_version})"
+            if macos_info.release_status != "final":
+                display_name += " (Beta)"
+            version_options.append(display_name)
+        
+        self.preferred_version_combo.addItems(version_options)
+        
+        # Restore previous selection if it still exists
+        if current_text and current_text in version_options:
+            self.preferred_version_combo.setCurrentText(current_text)
+        else:
+            # Set current value from settings
+            current_pref = self.settings.get("preferred_macos_version", "")
+            if current_pref:
+                # Try to find matching version by darwin version
+                matched = False
+                for macos_info in os_data.macos_versions:
+                    if current_pref.startswith(str(macos_info.darwin_version)):
+                        display_name = f"macOS {macos_info.name} ({macos_info.macos_version})"
+                        if macos_info.release_status != "final":
+                            display_name += " (Beta)"
+                        if display_name in version_options:
+                            self.preferred_version_combo.setCurrentText(display_name)
+                            matched = True
+                            break
+                if not matched:
+                    self.preferred_version_combo.setCurrentIndex(0)  # Auto
+            else:
+                self.preferred_version_combo.setCurrentIndex(0)  # Auto
+    
     def on_preferred_version_changed(self, text):
         """Handle preferred macOS version change"""
-        from ...datasets import os_data
-        
         if text == "Auto":
             self.settings.set("preferred_macos_version", "")
         else:
