@@ -217,22 +217,81 @@ class SettingsPage(QWidget):
             lambda checked: self.settings.set("include_beta_versions", checked))
         group.addSettingCard(self.include_beta_card)
 
-        # Preferred macOS version with expandable card
+        # Preferred macOS version with dropdown
         self.preferred_version_card = ExpandSettingCard(
             FluentIcon.EMBED,
             "Preferred macOS Version",
-            "Default macOS version to auto-select (Darwin format, e.g., '23.0.0'). Leave empty for auto-detection.",
+            "Default macOS version to auto-select. Leave as 'Auto' for automatic detection based on hardware.",
             group
         )
-        self.preferred_version_input = LineEdit(self)
-        self.preferred_version_input.setPlaceholderText("e.g., 23.0.0 (Ventura) - leave empty for auto")
-        self.preferred_version_input.setText(self.settings.get("preferred_macos_version", ""))
-        self.preferred_version_input.textChanged.connect(
-            lambda text: self.settings.set("preferred_macos_version", text))
-        self.preferred_version_card.viewLayout.addWidget(self.preferred_version_input)
+        
+        # Import os_data to get available versions
+        from ...datasets import os_data
+        
+        # Create ComboBox with available macOS versions
+        self.preferred_version_combo = ComboBox(self)
+        
+        # Add "Auto" as first option
+        version_options = ["Auto"]
+        
+        # Add all macOS versions from the dataset
+        for macos_info in os_data.macos_versions:
+            # Format: "macOS Ventura (13)" for example
+            display_name = f"macOS {macos_info.name} ({macos_info.macos_version})"
+            if macos_info.release_status != "final":
+                display_name += " (Beta)"
+            version_options.append(display_name)
+        
+        self.preferred_version_combo.addItems(version_options)
+        
+        # Set current value
+        current_pref = self.settings.get("preferred_macos_version", "")
+        if current_pref:
+            # Try to find matching version by darwin version
+            matched = False
+            for macos_info in os_data.macos_versions:
+                # Convert darwin version to check (e.g., "23.0.0" -> darwin 23)
+                darwin_str = f"{macos_info.darwin_version}.0.0"
+                if current_pref.startswith(str(macos_info.darwin_version)):
+                    display_name = f"macOS {macos_info.name} ({macos_info.macos_version})"
+                    if macos_info.release_status != "final":
+                        display_name += " (Beta)"
+                    index = version_options.index(display_name) if display_name in version_options else 0
+                    self.preferred_version_combo.setCurrentIndex(index)
+                    matched = True
+                    break
+            if not matched:
+                self.preferred_version_combo.setCurrentIndex(0)  # Auto
+        else:
+            self.preferred_version_combo.setCurrentIndex(0)  # Auto
+        
+        # Connect to save the darwin version when changed
+        self.preferred_version_combo.currentTextChanged.connect(self.on_preferred_version_changed)
+        
+        self.preferred_version_card.viewLayout.addWidget(self.preferred_version_combo)
         group.addSettingCard(self.preferred_version_card)
 
         return group
+    
+    def on_preferred_version_changed(self, text):
+        """Handle preferred macOS version change"""
+        from ...datasets import os_data
+        
+        if text == "Auto":
+            self.settings.set("preferred_macos_version", "")
+        else:
+            # Extract version info from display text
+            # Format is "macOS Ventura (13)" or "macOS Tahoe (26) (Beta)"
+            for macos_info in os_data.macos_versions:
+                display_name = f"macOS {macos_info.name} ({macos_info.macos_version})"
+                if macos_info.release_status != "final":
+                    display_name += " (Beta)"
+                
+                if text == display_name:
+                    # Save as darwin version format (e.g., "23.0.0")
+                    darwin_version = f"{macos_info.darwin_version}.0.0"
+                    self.settings.set("preferred_macos_version", darwin_version)
+                    break
 
     def create_boot_picker_group(self):
         """Create OpenCore boot picker settings group using modern components"""
@@ -620,7 +679,7 @@ class SettingsPage(QWidget):
             self.verbose_boot_card.switchButton.setChecked(True)
             self.custom_boot_args_input.setText("")
             self.include_beta_card.switchButton.setChecked(False)
-            self.preferred_version_input.setText("")
+            self.preferred_version_combo.setCurrentIndex(0)  # Set to "Auto"
             self.show_picker_card.switchButton.setChecked(True)
             self.picker_mode_combo.setCurrentText("Auto")
             self.hide_aux_card.switchButton.setChecked(False)
