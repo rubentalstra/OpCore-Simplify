@@ -162,7 +162,7 @@ class CompatibilityPage(ScrollArea):
 
     def update_macos_version_card(self):
         """Update the macOS version support card in the header"""
-        # Clear existing content
+        # Clear existing content (widgets and spacers)
         while self.version_card_content.count() > 0:
             item = self.version_card_content.takeAt(0)
             if item.widget():
