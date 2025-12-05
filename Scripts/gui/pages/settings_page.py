@@ -138,7 +138,7 @@ class SettingsPage(QWidget):
 
     def create_build_settings_group(self):
         """Create build settings group using modern components"""
-        group = SettingCardGroup("Build Settings", self)
+        group = SettingCardGroup("Build Settings 🔨", self)
 
         # Output directory setting
         self.output_dir_card = PushSettingCard(
@@ -156,7 +156,7 @@ class SettingsPage(QWidget):
         self.open_folder_card = SwitchSettingCard(
             FluentIcon.FOLDER_ADD,
             "Open folder after build",
-            "Automatically open the result folder after EFI build completes",
+            "Automatically opens the EFI build result folder when the build process completes successfully",
             configItem=None,
             parent=group
         )
@@ -170,7 +170,7 @@ class SettingsPage(QWidget):
         self.clean_temp_card = SwitchSettingCard(
             FluentIcon.DELETE,
             "Clean temporary files on exit",
-            "Remove temporary build files when closing the application",
+            "Automatically removes temporary build files and cache when closing the application to save disk space",
             configItem=None,
             parent=group
         )
@@ -184,13 +184,13 @@ class SettingsPage(QWidget):
 
     def create_boot_args_group(self):
         """Create boot arguments group using modern components"""
-        group = SettingCardGroup("Boot Arguments", self)
+        group = SettingCardGroup("Boot Arguments 🚀", self)
 
         # Verbose boot setting
         self.verbose_boot_card = SwitchSettingCard(
             FluentIcon.CODE,
             "Verbose boot (debug mode)",
-            'Include "-v debug=0x100 keepsyms=1" in boot-args for detailed boot logging',
+            'Enables verbose boot with "-v debug=0x100 keepsyms=1" arguments for detailed boot logging and troubleshooting',
             configItem=None,
             parent=group
         )
@@ -223,13 +223,13 @@ class SettingsPage(QWidget):
 
     def create_macos_version_group(self):
         """Create macOS version settings group using modern components"""
-        group = SettingCardGroup("macOS Version Settings", self)
+        group = SettingCardGroup("macOS Version Settings 🍎", self)
 
         # Include beta versions
         self.include_beta_card = SwitchSettingCard(
             FluentIcon.UPDATE,
             "Include beta versions",
-            "Show beta/unreleased macOS versions in version selection menu",
+            "Shows beta and unreleased macOS versions in version selection menus. Enable for testing new macOS releases.",
             configItem=None,
             parent=group
         )
@@ -259,7 +259,7 @@ class SettingsPage(QWidget):
             self.macos_version_config,
             FluentIcon.EMBED,
             "Preferred macOS Version",
-            "Default macOS version to auto-select. Leave as 'Auto' for automatic detection based on hardware.",
+            "Sets the default macOS version to auto-select. Choose 'Auto' for automatic hardware-based detection.",
             version_texts,
             group
         )
@@ -339,13 +339,13 @@ class SettingsPage(QWidget):
 
     def create_boot_picker_group(self):
         """Create OpenCore boot picker settings group using modern components"""
-        group = SettingCardGroup("OpenCore Boot Picker", self)
+        group = SettingCardGroup("OpenCore Boot Picker ⏸️", self)
 
         # Show picker
         self.show_picker_card = SwitchSettingCard(
             FluentIcon.MENU,
             "Show boot picker",
-            "Display OpenCore boot menu at startup",
+            "Displays the OpenCore boot menu at startup, allowing you to choose between different boot entries",
             configItem=None,
             parent=group
         )
@@ -374,7 +374,7 @@ class SettingsPage(QWidget):
             self.picker_mode_config,
             FluentIcon.APPLICATION,
             "Picker mode",
-            "Auto: Determined by firmware type. Builtin: Text mode. External: GUI mode with OpenCanopy.",
+            "Boot picker interface: Auto (firmware-based), Builtin (text mode), or External (OpenCanopy GUI)",
             picker_mode_values,
             group
         )
@@ -384,7 +384,7 @@ class SettingsPage(QWidget):
         self.hide_aux_card = SwitchSettingCard(
             FluentIcon.HIDE,
             "Hide auxiliary entries",
-            "Hide auxiliary entries (recovery, reset NVRAM, tools) in boot picker",
+            "Hides auxiliary boot entries (recovery, reset NVRAM, tools) from the boot picker for a cleaner interface",
             configItem=None,
             parent=group
         )
@@ -439,7 +439,7 @@ class SettingsPage(QWidget):
             self.picker_variant_config,
             FluentIcon.PALETTE,
             "Picker visual theme",
-            "Visual theme for OpenCore boot picker (External mode only)",
+            "Selects the visual theme for the OpenCore boot picker (only applies when using External/OpenCanopy mode)",
             picker_variant_values,
             group
         )
@@ -455,7 +455,7 @@ class SettingsPage(QWidget):
         self.disable_sip_card = SwitchSettingCard(
             FluentIcon.SETTING,
             "Disable SIP",
-            "Disable System Integrity Protection (csr-active-config). Required for many Hackintosh features.",
+            "Disables System Integrity Protection (csr-active-config). Required for many Hackintosh features and kexts.",
             configItem=None,
             parent=group
         )
@@ -485,7 +485,7 @@ class SettingsPage(QWidget):
             self.secure_boot_config,
             FluentIcon.CERTIFICATE,
             "Secure Boot Model",
-            "Default: Auto-select based on macOS version. Disabled: No secure boot. Others: Specific Mac model identifiers.",
+            "Secure boot configuration: Default (auto-detect), Disabled (no secure boot), or specific Mac model identifiers",
             secure_boot_values,
             group
         )
@@ -509,7 +509,7 @@ class SettingsPage(QWidget):
             self.vault_config,
             FluentIcon.COMPLETED,
             "OpenCore Vault",
-            "Optional: No vault protection. Basic/Secure: Vault signature verification (requires manual setup).",
+            "Vault protection level: Optional (none), Basic/Secure (requires vault signature setup for enhanced security)",
             vault_values,
             group
         )
@@ -525,7 +525,7 @@ class SettingsPage(QWidget):
         self.random_smbios_card = SwitchSettingCard(
             FluentIcon.SYNC,
             "Generate random SMBIOS",
-            "Generate new random serial numbers for each build",
+            "Automatically generates new random serial numbers for each build to ensure unique system identifiers",
             configItem=None,
             parent=group
         )
@@ -539,7 +539,7 @@ class SettingsPage(QWidget):
         self.preserve_smbios_card = SwitchSettingCard(
             FluentIcon.SAVE,
             "Preserve SMBIOS between builds",
-            "Keep the same SMBIOS values across multiple builds",
+            "Maintains the same SMBIOS values across multiple builds for consistency with iCloud and other services",
             configItem=None,
             parent=group
         )
@@ -611,7 +611,7 @@ class SettingsPage(QWidget):
 
     def create_appearance_group(self):
         """Create appearance settings group using modern components"""
-        group = SettingCardGroup("Appearance", self)
+        group = SettingCardGroup("Appearance 🎨", self)
 
         # Theme setting
         theme_values = ["light", "dark"]
@@ -632,7 +632,7 @@ class SettingsPage(QWidget):
             self.theme_config,
             FluentIcon.BRUSH,
             "Theme",
-            "Choose the application theme. Changes apply immediately.",
+            "Selects the application color theme. Changes take effect immediately throughout the interface.",
             theme_texts,
             group
         )
@@ -642,13 +642,13 @@ class SettingsPage(QWidget):
 
     def create_update_settings_group(self):
         """Create update & download settings group using modern components"""
-        group = SettingCardGroup("Updates & Downloads", self)
+        group = SettingCardGroup("Updates & Downloads 📦", self)
 
         # Auto-update check
         self.auto_update_card = SwitchSettingCard(
             FluentIcon.UPDATE,
             "Check for updates on startup",
-            "Automatically check for OpCore Simplify updates when the application starts",
+            "Automatically checks for new OpCore Simplify updates when the application launches to keep you up to date",
             configItem=None,
             parent=group
         )
@@ -662,7 +662,7 @@ class SettingsPage(QWidget):
         self.verify_integrity_card = SwitchSettingCard(
             FluentIcon.CERTIFICATE,
             "Verify download integrity (SHA256)",
-            "Verify SHA256 checksums of downloaded OpenCore and kext files for security",
+            "Verifies SHA256 checksums of downloaded OpenCore and kext files to ensure authenticity and security",
             configItem=None,
             parent=group
         )
@@ -676,7 +676,7 @@ class SettingsPage(QWidget):
         self.force_redownload_card = SwitchSettingCard(
             FluentIcon.DOWNLOAD,
             "Force redownload files",
-            "Always download fresh files even if they exist locally. Useful for debugging.",
+            "Forces fresh downloads of all files even if they exist locally. Useful for debugging or ensuring latest versions.",
             configItem=None,
             parent=group
         )
@@ -696,7 +696,7 @@ class SettingsPage(QWidget):
         self.debug_logging_card = SwitchSettingCard(
             FluentIcon.DEVELOPER_TOOLS,
             "Enable debug logging",
-            "Enable detailed debug logging throughout the application for troubleshooting",
+            "Enables detailed debug logging throughout the application for advanced troubleshooting and diagnostics",
             configItem=None,
             parent=group
         )
@@ -710,7 +710,7 @@ class SettingsPage(QWidget):
         self.skip_acpi_card = SwitchSettingCard(
             FluentIcon.CANCEL,
             "Skip ACPI validation warnings",
-            "Bypass ACPI table validation warnings. Use only if you know what you're doing.",
+            "Bypasses ACPI table validation warnings during build. Only enable if you understand the implications.",
             configItem=None,
             parent=group
         )
@@ -724,7 +724,7 @@ class SettingsPage(QWidget):
         self.force_kext_card = SwitchSettingCard(
             FluentIcon.CARE_RIGHT_SOLID,
             "Force load incompatible kexts",
-            "Force load kexts on unsupported macOS versions using '-lilubetaall'. May cause instability.",
+            "Forces loading of kexts on unsupported macOS versions using '-lilubetaall' boot argument. May cause system instability.",
             configItem=None,
             parent=group
         )
@@ -738,7 +738,7 @@ class SettingsPage(QWidget):
     
     def create_help_group(self):
         """Create help and documentation group with useful links"""
-        group = SettingCardGroup("Help & Documentation", self)
+        group = SettingCardGroup("Help & Documentation 📚", self)
         
         # OpenCore Documentation
         self.opencore_docs_card = HyperlinkCard(
