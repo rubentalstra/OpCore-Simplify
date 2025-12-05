@@ -261,19 +261,22 @@ class CompatibilityPage(ScrollArea):
 
     def update_display(self):
         """Update compatibility display with GroupHeaderCardWidget for better organization"""
-        # Clear existing cards (except the macOS version card which is the first widget)
-        # Store reference to widgets we want to keep
-        widgets_to_keep = {self.macos_version_card}
+        # Clear existing cards (except the macOS version card which should be the first widget)
+        # Collect all widgets to remove (keeping track of which to preserve)
+        widgets_to_remove = []
         
-        # Remove all widgets except those we want to keep
-        while self.expandLayout.count() > 0:
-            item = self.expandLayout.takeAt(0)
-            if item.widget() and item.widget() not in widgets_to_keep:
-                item.widget().deleteLater()
-            elif item.widget() in widgets_to_keep:
-                # Re-add the widget we want to keep
-                self.expandLayout.addWidget(item.widget())
-                break
+        for i in range(self.expandLayout.count()):
+            item = self.expandLayout.itemAt(i)
+            if item and item.widget():
+                widget = item.widget()
+                # Keep the macOS version card, remove everything else
+                if widget != self.macos_version_card:
+                    widgets_to_remove.append(widget)
+        
+        # Now remove all the widgets we identified
+        for widget in widgets_to_remove:
+            self.expandLayout.removeWidget(widget)
+            widget.deleteLater()
 
         if not self.controller.hardware_report:
             self.placeholder_label = BodyLabel(
