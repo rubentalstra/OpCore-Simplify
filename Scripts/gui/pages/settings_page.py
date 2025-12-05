@@ -144,7 +144,8 @@ class SettingsPage(ScrollArea):
         self.expandLayout.addWidget(self.bottom_widget)
 
         # Adjust icon size for all setting cards (must be done after all cards are added)
-        for card in self.scrollWidget.findChildren(SettingCard):
+        # ExpandSettingCard inherits from QScrollArea, not SettingCard, so it won't be affected
+        for card in self.findChildren(SettingCard):
             card.setIconSize(18, 18)
 
     def create_build_settings_group(self):
