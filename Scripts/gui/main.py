@@ -109,8 +109,14 @@ class OpCoreGUI(FluentWindow):
         font.setStyleHint(QFont.StyleHint.SansSerif)
         self.setFont(font)
 
-        # Use light theme by default
-        setTheme(Theme.LIGHT)
+        # Apply theme from settings
+        from Scripts.settings import Settings
+        settings = Settings()
+        theme_setting = settings.get_theme()
+        if theme_setting == "dark":
+            setTheme(Theme.DARK)
+        else:
+            setTheme(Theme.LIGHT)
 
         # Variables for tracking state
         self.hardware_report_path = "Not selected"
@@ -667,8 +673,11 @@ class OpCoreGUI(FluentWindow):
             self, bios_requirements, self.ocpe.result_dir)
         
         if result:
-            # User agreed - open the result folder
-            self.ocpe.u.open_folder(self.ocpe.result_dir)
+            # User agreed - open the result folder if setting is enabled
+            from Scripts.settings import Settings
+            settings = Settings()
+            if settings.get_open_folder_after_build():
+                self.ocpe.u.open_folder(self.ocpe.result_dir)
             
             # Enable the open result button
             if self.open_result_btn:
