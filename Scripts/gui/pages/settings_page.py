@@ -32,28 +32,31 @@ class SettingsPage(QWidget):
 
     def init_ui(self):
         """Initialize the UI with modern qfluentwidgets components"""
-        # Main layout
+        # Main layout - just for the scroll area
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(20)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Scroll area for entire page
+        scroll = ScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setContentsMargins(20, 20, 20, 20)
+        scroll_layout.setSpacing(20)
 
         # Title
         title_label = TitleLabel("Settings")
-        layout.addWidget(title_label)
+        scroll_layout.addWidget(title_label)
 
         # Subtitle
         subtitle_label = BodyLabel(
             "Configure OpCore Simplify preferences - 27 settings across 9 categories")
         subtitle_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
-        layout.addWidget(subtitle_label)
+        scroll_layout.addWidget(subtitle_label)
 
-        # Scroll area for settings
-        scroll = ScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setSpacing(15)
-        scroll_layout.setContentsMargins(10, 10, 10, 10)
+        # Add spacing after header
+        scroll_layout.addSpacing(10)
 
         # Build Settings Group
         self.build_group = self.create_build_settings_group()
@@ -91,13 +94,12 @@ class SettingsPage(QWidget):
         self.advanced_group = self.create_advanced_group()
         scroll_layout.addWidget(self.advanced_group)
 
-        scroll_layout.addStretch()
-        scroll.setWidget(scroll_content)
-        layout.addWidget(scroll)
+        # Add spacing before footer
+        scroll_layout.addSpacing(20)
 
-        # Bottom section with version and reset button
+        # Version information and reset button section
         bottom_layout = QHBoxLayout()
-        bottom_layout.setContentsMargins(10, 10, 10, 5)
+        bottom_layout.setContentsMargins(0, 10, 0, 10)
         
         # Version information
         version_label = BodyLabel("Version:")
@@ -118,7 +120,13 @@ class SettingsPage(QWidget):
         reset_btn.clicked.connect(self.reset_to_defaults)
         bottom_layout.addWidget(reset_btn)
         
-        layout.addLayout(bottom_layout)
+        scroll_layout.addLayout(bottom_layout)
+        
+        # Add stretch at the end to push content up
+        scroll_layout.addStretch()
+
+        scroll.setWidget(scroll_content)
+        layout.addWidget(scroll)
 
     def create_build_settings_group(self):
         """Create build settings group using modern components"""
