@@ -13,7 +13,9 @@ from qfluentwidgets import (
     LineEdit, FluentIcon, InfoBar, InfoBarPosition,
     SettingCardGroup, SwitchSettingCard, ComboBoxSettingCard,
     PushSettingCard, ExpandSettingCard, setTheme, Theme, SpinBox,
-    OptionsConfigItem, OptionsValidator, qconfig
+    OptionsConfigItem, OptionsValidator, qconfig, HyperlinkCard,
+    RangeSettingCard, SliderSettingCard, ToolTip, SubtitleLabel,
+    StrongBodyLabel, CaptionLabel
 )
 
 from ..styles import COLORS, SPACING
@@ -43,11 +45,17 @@ class SettingsPage(QWidget):
         title_label = TitleLabel("Settings")
         layout.addWidget(title_label)
 
-        # Subtitle
-        subtitle_label = BodyLabel(
-            "Configure OpCore Simplify preferences - 27 settings across 9 categories")
+        # Subtitle with improved styling
+        subtitle_label = StrongBodyLabel(
+            "Configure OpCore Simplify preferences")
         subtitle_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
         layout.addWidget(subtitle_label)
+        
+        # Category count
+        category_info = CaptionLabel(
+            "27 settings organized across 9 categories")
+        category_info.setStyleSheet(f"color: {COLORS['text_tertiary']};")
+        layout.addWidget(category_info)
 
         layout.addSpacing(SPACING['medium'])
 
@@ -94,6 +102,10 @@ class SettingsPage(QWidget):
         # Advanced Settings Group
         self.advanced_group = self.create_advanced_group()
         scroll_layout.addWidget(self.advanced_group)
+        
+        # Documentation and Help Group
+        self.help_group = self.create_help_group()
+        scroll_layout.addWidget(self.help_group)
 
         scroll_layout.addStretch()
         scroll.setWidget(scroll_content)
@@ -192,16 +204,17 @@ class SettingsPage(QWidget):
         self.custom_boot_args_card = ExpandSettingCard(
             FluentIcon.COMMAND_PROMPT,
             "Additional Boot Arguments",
-            "Add custom boot arguments (e.g., 'alcid=1 -wegnoegpu'). Space-separated, appended to defaults.",
+            "Add custom boot arguments (space-separated). Examples: alcid=1 (audio), -wegnoegpu (disable GPU)",
             group
         )
         self.custom_boot_args_input = LineEdit(self)
         self.custom_boot_args_input.setPlaceholderText(
-            "e.g., alcid=1 -wegnoegpu")
+            "e.g., alcid=1 -wegnoegpu agdpmod=pikera")
         self.custom_boot_args_input.setText(
             self.settings.get("custom_boot_args", ""))
         self.custom_boot_args_input.textChanged.connect(
             lambda text: self.settings.set("custom_boot_args", text))
+        self.custom_boot_args_input.setClearButtonEnabled(True)
         self.custom_boot_args_card.viewLayout.addWidget(
             self.custom_boot_args_input)
         group.addSettingCard(self.custom_boot_args_card)
@@ -381,19 +394,25 @@ class SettingsPage(QWidget):
             lambda checked: self.settings.set("hide_auxiliary", checked))
         group.addSettingCard(self.hide_aux_card)
 
-        # Picker timeout using ExpandSettingCard with SpinBox
-        self.timeout_card = ExpandSettingCard(
+        # Picker timeout using RangeSettingCard for better UX
+        self.timeout_config = OptionsConfigItem(
+            "BootPicker",
+            "Timeout",
+            str(self.settings.get("picker_timeout", 5)),
+            OptionsValidator([str(i) for i in range(0, 100)])
+        )
+        
+        self.timeout_card = RangeSettingCard(
+            self.timeout_config,
             FluentIcon.HISTORY,
-            "Boot timeout (seconds)",
-            "Time to wait before auto-booting default entry. 0 = wait indefinitely.",
+            "Boot timeout",
+            "Time (in seconds) to wait before auto-booting. Set to 0 to wait indefinitely.",
             group
         )
-        self.timeout_spin = SpinBox(self)
-        self.timeout_spin.setRange(0, 999)
-        self.timeout_spin.setValue(self.settings.get("picker_timeout", 5))
-        self.timeout_spin.valueChanged.connect(
-            lambda value: self.settings.set("picker_timeout", value))
-        self.timeout_card.viewLayout.addWidget(self.timeout_spin)
+        self.timeout_card.valueChanged.connect(
+            lambda value: self.settings.set("picker_timeout", int(value)))
+        self.timeout_card.setRange(0, 60)
+        self.timeout_card.setValue(self.settings.get("picker_timeout", 5))
         group.addSettingCard(self.timeout_card)
 
         # Picker variant
@@ -430,7 +449,7 @@ class SettingsPage(QWidget):
 
     def create_security_group(self):
         """Create security settings group using modern components"""
-        group = SettingCardGroup("Security Settings ⚠️", self)
+        group = SettingCardGroup("Security Settings 🔒", self)
 
         # Disable SIP
         self.disable_sip_card = SwitchSettingCard(
@@ -500,7 +519,7 @@ class SettingsPage(QWidget):
 
     def create_smbios_group(self):
         """Create SMBIOS settings group using modern components"""
-        group = SettingCardGroup("SMBIOS Settings ⚠️", self)
+        group = SettingCardGroup("SMBIOS Settings 🔑", self)
 
         # Random SMBIOS
         self.random_smbios_card = SwitchSettingCard(
@@ -534,7 +553,7 @@ class SettingsPage(QWidget):
         self.custom_serial_card = ExpandSettingCard(
             FluentIcon.TAG,
             "Custom Serial Number",
-            "Leave empty to auto-generate. Disabled when random SMBIOS is enabled.",
+            "Override auto-generated serial. Leave empty for automatic generation. Disabled when random SMBIOS is enabled.",
             group
         )
         self.custom_serial_input = LineEdit(self)
@@ -546,6 +565,7 @@ class SettingsPage(QWidget):
             lambda text: self.settings.set("custom_serial_number", text))
         self.custom_serial_input.setEnabled(
             not self.settings.get("random_smbios", True))
+        self.custom_serial_input.setClearButtonEnabled(True)
         self.custom_serial_card.viewLayout.addWidget(self.custom_serial_input)
         group.addSettingCard(self.custom_serial_card)
 
@@ -553,7 +573,7 @@ class SettingsPage(QWidget):
         self.custom_mlb_card = ExpandSettingCard(
             FluentIcon.DEVELOPER_TOOLS,
             "Custom MLB (Main Logic Board)",
-            "Leave empty to auto-generate. Disabled when random SMBIOS is enabled.",
+            "Override auto-generated MLB. Leave empty for automatic generation. Disabled when random SMBIOS is enabled.",
             group
         )
         self.custom_mlb_input = LineEdit(self)
@@ -564,6 +584,7 @@ class SettingsPage(QWidget):
             lambda text: self.settings.set("custom_mlb", text))
         self.custom_mlb_input.setEnabled(
             not self.settings.get("random_smbios", True))
+        self.custom_mlb_input.setClearButtonEnabled(True)
         self.custom_mlb_card.viewLayout.addWidget(self.custom_mlb_input)
         group.addSettingCard(self.custom_mlb_card)
 
@@ -571,17 +592,18 @@ class SettingsPage(QWidget):
         self.custom_rom_card = ExpandSettingCard(
             FluentIcon.RINGER,
             "Custom ROM (MAC Address)",
-            "Leave empty to auto-generate (e.g., 112233445566). Disabled when random SMBIOS is enabled.",
+            "Override auto-generated ROM address. Format: 12 hex digits (e.g., 112233445566). Disabled when random SMBIOS is enabled.",
             group
         )
         self.custom_rom_input = LineEdit(self)
         self.custom_rom_input.setPlaceholderText(
-            "Leave empty to auto-generate (e.g., 112233445566)")
+            "e.g., 112233445566")
         self.custom_rom_input.setText(self.settings.get("custom_rom", ""))
         self.custom_rom_input.textChanged.connect(
             lambda text: self.settings.set("custom_rom", text))
         self.custom_rom_input.setEnabled(
             not self.settings.get("random_smbios", True))
+        self.custom_rom_input.setClearButtonEnabled(True)
         self.custom_rom_card.viewLayout.addWidget(self.custom_rom_input)
         group.addSettingCard(self.custom_rom_card)
 
@@ -668,7 +690,7 @@ class SettingsPage(QWidget):
 
     def create_advanced_group(self):
         """Create advanced settings group using modern components"""
-        group = SettingCardGroup("Advanced Settings ⚠️", self)
+        group = SettingCardGroup("Advanced Settings ⚙️", self)
 
         # Enable debug logging
         self.debug_logging_card = SwitchSettingCard(
@@ -711,6 +733,45 @@ class SettingsPage(QWidget):
         self.force_kext_card.switchButton.checkedChanged.connect(
             lambda checked: self.settings.set("force_load_incompatible_kexts", checked))
         group.addSettingCard(self.force_kext_card)
+
+        return group
+    
+    def create_help_group(self):
+        """Create help and documentation group with useful links"""
+        group = SettingCardGroup("Help & Documentation", self)
+        
+        # OpenCore Documentation
+        self.opencore_docs_card = HyperlinkCard(
+            "https://dortania.github.io/OpenCore-Install-Guide/",
+            "OpenCore Install Guide",
+            FluentIcon.BOOK_SHELF,
+            "OpenCore Documentation",
+            "Complete guide for installing macOS with OpenCore",
+            group
+        )
+        group.addSettingCard(self.opencore_docs_card)
+        
+        # Troubleshooting Guide
+        self.troubleshoot_card = HyperlinkCard(
+            "https://dortania.github.io/OpenCore-Install-Guide/troubleshooting/troubleshooting.html",
+            "Troubleshooting",
+            FluentIcon.HELP,
+            "Troubleshooting Guide",
+            "Solutions to common OpenCore installation issues",
+            group
+        )
+        group.addSettingCard(self.troubleshoot_card)
+        
+        # GitHub Repository
+        self.github_card = HyperlinkCard(
+            "https://github.com/rubentalstra/OpCore-Simplify",
+            "View on GitHub",
+            FluentIcon.GITHUB,
+            "OpCore-Simplify Repository",
+            "Report issues, contribute, or view the source code",
+            group
+        )
+        group.addSettingCard(self.github_card)
 
         return group
 
@@ -775,7 +836,8 @@ class SettingsPage(QWidget):
             if hasattr(self, 'picker_mode_card'):
                 self.picker_mode_card.setValue("Auto")
             self.hide_aux_card.switchButton.setChecked(False)
-            self.timeout_spin.setValue(5)
+            if hasattr(self, 'timeout_card'):
+                self.timeout_card.setValue(5)
             if hasattr(self, 'picker_variant_card'):
                 self.picker_variant_card.setValue("Auto")
             self.disable_sip_card.switchButton.setChecked(True)
