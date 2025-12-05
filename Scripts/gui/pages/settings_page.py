@@ -14,8 +14,7 @@ from qfluentwidgets import (
     SettingCardGroup, SwitchSettingCard, ComboBoxSettingCard,
     PushSettingCard, ExpandSettingCard, setTheme, Theme, SpinBox,
     OptionsConfigItem, OptionsValidator, qconfig, HyperlinkCard,
-    RangeSettingCard, SliderSettingCard, ToolTip, SubtitleLabel,
-    StrongBodyLabel, CaptionLabel
+    RangeSettingCard, StrongBodyLabel, CaptionLabel
 )
 
 from ..styles import COLORS, SPACING
@@ -403,7 +402,7 @@ class SettingsPage(QWidget):
             "BootPicker",
             "Timeout",
             str(self.settings.get("picker_timeout", 5)),
-            OptionsValidator([str(i) for i in range(0, 100)])
+            OptionsValidator([str(i) for i in range(0, 61)])
         )
         
         self.timeout_card = RangeSettingCard(
