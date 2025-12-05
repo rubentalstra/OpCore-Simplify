@@ -4,7 +4,6 @@ Contains all 27 configurable settings across 9 categories
 """
 
 import os
-import subprocess
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog
 )
@@ -828,49 +827,20 @@ class SettingsPage(QWidget):
         )
     
     def get_git_version(self):
-        """Get the git SHA version of the software"""
+        """Get the SHA version from sha_version.txt file"""
         try:
-            # Get the directory of the script (3 levels up from this file to reach project root)
+            # Get the project root directory (3 levels up from this file)
             script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
             
-            # First, try to read from sha_version.txt file
+            # Read from sha_version.txt file
             sha_version_file = os.path.join(script_dir, 'sha_version.txt')
             if os.path.exists(sha_version_file):
-                try:
-                    with open(sha_version_file, 'r') as f:
-                        version = f.read().strip()
-                        if version:
-                            return version
-                except Exception:
-                    pass  # Fall through to git command
+                with open(sha_version_file, 'r') as f:
+                    version = f.read().strip()
+                    if version:
+                        return version
             
-            # Fallback: Try to get the git SHA using git command
-            result = subprocess.run(
-                ['git', 'rev-parse', '--short', 'HEAD'],
-                cwd=script_dir,
-                capture_output=True,
-                text=True,
-                timeout=2
-            )
-            
-            if result.returncode == 0:
-                git_sha = result.stdout.strip()
-                
-                # Check if there are uncommitted changes
-                status_result = subprocess.run(
-                    ['git', 'status', '--porcelain'],
-                    cwd=script_dir,
-                    capture_output=True,
-                    text=True,
-                    timeout=2
-                )
-                
-                if status_result.returncode == 0 and status_result.stdout.strip():
-                    # There are uncommitted changes
-                    return f"{git_sha}-modified"
-                
-                return git_sha
-            else:
-                return "unknown"
+            # If file doesn't exist or is empty
+            return "unknown"
         except Exception:
             return "unknown"
