@@ -8,6 +8,7 @@ from Scripts.datasets import codec_layouts
 from Scripts import gathering_files
 from Scripts import smbios
 from Scripts import utils
+import random
 
 class ConfigProdigy:
     def __init__(self):
@@ -22,9 +23,6 @@ class ConfigProdigy:
             "Comet Lake": "55060A00",
             "Ice Lake": "E5060700"
         }
-        # Pre-selected audio codec layout (can be changed during build)
-        self.selected_codec_layout = None
-        self.selected_audio_controller = None
 
     def mmio_whitelist(self, motherboard_chipset):
         booter_mmiowhitelist = []
@@ -268,158 +266,43 @@ class ConfigProdigy:
             return None, None
         
         available_layouts = codec_layouts.data.get(codec_id)
-        
-        # Check if there are any layouts available for this codec
-        if not available_layouts:
-            return None, None
 
         recommended_authors = ("Mirone", "InsanelyDeepak", "Toleda", "DalianSky")
         recommended_layouts = [layout for layout in available_layouts if self.utils.contains_any(recommended_authors, layout.comment)]
 
-        # Use pre-selected layout as default if available, otherwise pick the first recommended one
-        if self.selected_codec_layout:
-            # Find the layout object for the pre-selected ID
-            default_layout = next((layout for layout in available_layouts if layout.id == self.selected_codec_layout), None)
-            if not default_layout:
-                # Fallback if pre-selected layout is not in available layouts
-                # Use first recommended layout if available, otherwise first layout
-                default_layout = recommended_layouts[0] if recommended_layouts else available_layouts[0]
-        else:
-            # Use first recommended layout if available, otherwise first layout
-            default_layout = recommended_layouts[0] if recommended_layouts else available_layouts[0]
+        default_layout = random.choice(recommended_layouts or available_layouts)
 
-        selected_layout_id = None
-        
-        # Check if GUI mode is available
-        if self.utils.gui_callback:
-            # Use GUI dialog - this will block until user makes selection
-            result = self.utils.gui_callback(
-                'codec_layout',
-                '',
-                {
-                    'codec_id': codec_id,
-                    'available_layouts': available_layouts,
-                    'default_layout': default_layout,
-                    'recommended_layouts': recommended_layouts
-                }
-            )
-            
-            if result and result[1]:  # (layout_id, ok)
-                # Store the selection for next time (as pre-selected value)
-                self.selected_codec_layout = result[0]
-                self.selected_audio_controller = audio_controller_properties
-                return result[0], audio_controller_properties
-            else:
-                return None, None
-        
-        # CLI mode
         while True:
-            # Build content for CLI mode with improved formatting similar to SMBIOS dialog
             contents = []
             contents.append("")
-            contents.append("Available Codec Layouts for {}:".format(codec_id))
+            contents.append("List of Codec Layouts:")
             contents.append("")
-            
-            # Group layouts by recommended vs others
-            recommended_ids = [layout.id for layout in recommended_layouts]
-            
-            if recommended_layouts:
-                contents.append("\n\033[1;32mRecommended Layouts:\033[0m")
-                contents.append("=" * 70)
-                for index, layout in enumerate(available_layouts, start=1):
-                    if layout.id in recommended_ids:
-                        checkbox = "[*]" if layout.id == (selected_layout_id or default_layout.id) else "[ ]"
-                        line = "{} {:3}. ID {:3} - {}".format(checkbox, index, layout.id, (layout.comment or 'No description')[:55])
-                        if layout.id == (selected_layout_id or default_layout.id):
-                            contents.append("\033[1;32m{}\033[0m".format(line))
-                        else:
-                            contents.append(line)
-                
-                contents.append("\n\033[1;90mOther Available Layouts:\033[0m")
-                contents.append("=" * 70)
-            
-            for index, layout in enumerate(available_layouts, start=1):
-                if not recommended_layouts or layout.id not in recommended_ids:
-                    checkbox = "[*]" if layout.id == (selected_layout_id or default_layout.id) else "[ ]"
-                    line = "{} {:3}. ID {:3} - {}".format(checkbox, index, layout.id, (layout.comment or 'No description')[:55])
-                    if layout.id == (selected_layout_id or default_layout.id):
-                        contents.append("\033[1;32m{}\033[0m".format(line))
-                    else:
-                        contents.append("\033[90m{}\033[0m".format(line))
-            
+            contents.append("ID   Comment")
+            contents.append("------------------------------------------------------------------")
+            for layout in available_layouts:
+                line = "{:<4} {}".format(layout.id, layout.comment[:60])
+                if layout == default_layout:
+                    contents.append("\033[1;32m{}\033[0m".format(line))
+                else:
+                    contents.append(line)
             contents.append("")
             contents.append("\033[1;93mNote:\033[0m")
-            contents.append("- The default layout (marked with [*]) may not be optimal.")
+            contents.append("- The default layout may not be optimal.")
             contents.append("- Test different layouts to find what works best for your system.")
-            contents.append("- Recommended layouts are from trusted authors (Mirone, InsanelyDeepak, Toleda, DalianSky).")
-            contents.append("")
-            
-            if selected_layout_id and selected_layout_id != default_layout.id:
-                contents.append("R. Restore default layout (ID: {})".format(default_layout.id))
-            
-            contents.append("B. Back")
-            contents.append("Q. Quit")
             contents.append("")
             content = "\n".join(contents)
 
-            # Build GUI options for dialog
-            gui_choices = []
-            for index, layout in enumerate(available_layouts, start=1):
-                is_recommended = layout.id in recommended_ids if recommended_layouts else False
-                label_prefix = "⭐ " if is_recommended else ""
-                gui_choices.append({
-                    'value': str(layout.id),
-                    'label': f"{label_prefix}ID {layout.id}",
-                    'description': (layout.comment or 'No description')[:100]
-                })
-            
-            gui_options = {
-                'title': 'Choosing Codec Layout ID',
-                'message': f'Select the audio codec layout for {codec_id}.\n\nNote:\n- The default layout may not be optimal.\n- Test different layouts to find what works best.\n- ⭐ indicates recommended layouts from trusted authors.',
-                'choices': gui_choices,
-                'default': str(selected_layout_id or default_layout.id)
-            }
-
-            # Show dialog in CLI mode
-            if not self.utils.gui_callback:
-                self.utils.adjust_window_size(content)
-                self.utils.head("Choosing Codec Layout ID", resize=False)
-                print(content)
-            
-            option = self.utils.request_input(
-                f"Select layout number or enter ID (default: {default_layout.id}): ",
-                gui_type='choice',
-                gui_options=gui_options
-            ) or str(default_layout.id)
-            
-            if option.lower() == "q":
-                self.utils.exit_program()
-            if option.lower() == "b":
-                return None, None
-            if option.lower() == "r" and selected_layout_id and selected_layout_id != default_layout.id:
-                selected_layout_id = default_layout.id
-                continue
+            self.utils.adjust_window_size(content)
+            self.utils.head("Choosing Codec Layout ID", resize=False)
+            print(content)
+            selected_layout_id = self.utils.request_input(f"Enter the ID of the codec layout you want to use (default: {default_layout.id}): ") or default_layout.id
 
             try:
-                # Try to parse as layout number (index) first
-                if option.strip().isdigit():
-                    option_int = int(option)
-                    # Check if it's an index (1-based)
-                    if 1 <= option_int <= len(available_layouts):
-                        selected_layout_id = available_layouts[option_int - 1].id
-                        # Store the selection for next time (as pre-selected value)
-                        self.selected_codec_layout = selected_layout_id
-                        self.selected_audio_controller = audio_controller_properties
+                selected_layout_id = int(selected_layout_id)
+
+                for layout in available_layouts:
+                    if layout.id == selected_layout_id:
                         return selected_layout_id, audio_controller_properties
-                    # Otherwise treat as layout ID
-                    else:
-                        for layout in available_layouts:
-                            if layout.id == option_int:
-                                selected_layout_id = layout.id
-                                # Store the selection for next time (as pre-selected value)
-                                self.selected_codec_layout = selected_layout_id
-                                self.selected_audio_controller = audio_controller_properties
-                                return selected_layout_id, audio_controller_properties
             except:
                 continue
   
