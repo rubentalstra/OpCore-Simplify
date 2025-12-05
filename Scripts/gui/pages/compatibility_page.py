@@ -290,6 +290,7 @@ class CompatibilityPage(ScrollArea):
             return
 
         report = self.controller.hardware_report
+        cards_added = 0  # Track if any cards were created
 
         # CPU Card
         if 'CPU' in report:
@@ -336,6 +337,7 @@ class CompatibilityPage(ScrollArea):
                     )
 
             self.expandLayout.addWidget(cpu_card)
+            cards_added += 1
 
         # GPU Card
         if 'GPU' in report and report['GPU']:
@@ -399,6 +401,7 @@ class CompatibilityPage(ScrollArea):
                         )
 
             self.expandLayout.addWidget(gpu_card)
+            cards_added += 1
 
         # Sound Card
         if 'Sound' in report and report['Sound']:
@@ -438,6 +441,7 @@ class CompatibilityPage(ScrollArea):
                     )
 
             self.expandLayout.addWidget(sound_card)
+            cards_added += 1
 
         # Network Card
         if 'Network' in report and report['Network']:
@@ -507,6 +511,7 @@ class CompatibilityPage(ScrollArea):
                         )
 
             self.expandLayout.addWidget(network_card)
+            cards_added += 1
 
         # Storage Controllers Card
         if 'Storage Controllers' in report and report['Storage Controllers']:
@@ -535,6 +540,7 @@ class CompatibilityPage(ScrollArea):
                 )
 
             self.expandLayout.addWidget(storage_card)
+            cards_added += 1
 
         # Bluetooth Card
         if 'Bluetooth' in report and report['Bluetooth']:
@@ -563,6 +569,7 @@ class CompatibilityPage(ScrollArea):
                 )
 
             self.expandLayout.addWidget(bluetooth_card)
+            cards_added += 1
 
         # Biometric Card (if exists)
         if 'Biometric' in report and report['Biometric']:
@@ -595,6 +602,18 @@ class CompatibilityPage(ScrollArea):
                 )
 
             self.expandLayout.addWidget(bio_card)
+            cards_added += 1
+
+        # If no cards were added, show a message
+        if cards_added == 0:
+            no_data_label = BodyLabel(
+                "No compatible hardware information found in the report.\n"
+                "Please ensure the hardware report contains valid device data."
+            )
+            no_data_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            no_data_label.setStyleSheet("color: #D13438; padding: 40px;")
+            no_data_label.setWordWrap(True)
+            self.expandLayout.addWidget(no_data_label)
 
         # Update the macOS version card in the header
         self.update_macos_version_card()
