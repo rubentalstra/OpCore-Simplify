@@ -10,11 +10,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from qfluentwidgets import (
     ScrollArea, TitleLabel, BodyLabel, PushButton,
-    LineEdit, CardWidget, FluentIcon, InfoBar, InfoBarPosition,
+    LineEdit, FluentIcon, InfoBar, InfoBarPosition,
     SettingCardGroup, SwitchSettingCard, ComboBox,
-    RangeSettingCard, PushSettingCard, HyperlinkCard,
-    PrimaryPushSettingCard, ExpandGroupSettingCard,
-    ExpandSettingCard, setTheme, Theme
+    PushSettingCard, ExpandSettingCard, setTheme, Theme, SpinBox
 )
 
 from ..styles import COLORS, SPACING
@@ -284,7 +282,6 @@ class SettingsPage(QWidget):
         group.addSettingCard(self.hide_aux_card)
 
         # Picker timeout using ExpandSettingCard with SpinBox
-        from qfluentwidgets import SpinBox
         self.timeout_card = ExpandSettingCard(
             FluentIcon.HISTORY,
             "Boot timeout (seconds)",
