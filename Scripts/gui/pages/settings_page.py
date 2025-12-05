@@ -122,7 +122,7 @@ class SettingsPage(ScrollArea):
         # Version information with better styling
         version_container = QHBoxLayout()
         version_container.setSpacing(SPACING['small'])
-        
+
         version_label = StrongBodyLabel("Version:")
         version_container.addWidget(version_label)
 
@@ -131,7 +131,7 @@ class SettingsPage(ScrollArea):
         version_value.setStyleSheet(
             f"color: {COLORS['text_secondary']}; font-family: 'Courier New', monospace;")
         version_container.addWidget(version_value)
-        
+
         bottom_layout.addLayout(version_container)
         bottom_layout.addStretch()
 
@@ -406,25 +406,19 @@ class SettingsPage(ScrollArea):
             lambda checked: self.settings.set("hide_auxiliary", checked))
         group.addSettingCard(self.hide_aux_card)
 
-        # Picker timeout using RangeSettingCard for better UX
-        self.timeout_config = OptionsConfigItem(
-            "BootPicker",
-            "Timeout",
-            str(self.settings.get("picker_timeout", 5)),
-            OptionsValidator([str(i) for i in range(0, 61)])
-        )
-        
-        self.timeout_card = RangeSettingCard(
-            self.timeout_config,
+        # Picker timeout using SpinBox for precise control
+        self.timeout_card = ExpandSettingCard(
             FluentIcon.HISTORY,
             "Boot timeout",
-            "Time (in seconds) to wait before auto-booting. Set to 0 to wait indefinitely.",
+            "Time in seconds to wait before auto-booting the default entry. Set to 0 to wait indefinitely.",
             group
         )
-        self.timeout_card.valueChanged.connect(
-            lambda value: self.settings.set("picker_timeout", int(value)))
-        self.timeout_card.setRange(0, 60)
-        self.timeout_card.setValue(self.settings.get("picker_timeout", 5))
+        self.timeout_spin = SpinBox(self)
+        self.timeout_spin.setRange(0, 60)
+        self.timeout_spin.setValue(self.settings.get("picker_timeout", 5))
+        self.timeout_spin.valueChanged.connect(
+            lambda value: self.settings.set("picker_timeout", value))
+        self.timeout_card.viewLayout.addWidget(self.timeout_spin)
         group.addSettingCard(self.timeout_card)
 
         # Picker variant
@@ -747,7 +741,7 @@ class SettingsPage(ScrollArea):
         group.addSettingCard(self.force_kext_card)
 
         return group
-    
+
     def create_help_group(self):
         """Create help and documentation group with useful links"""
         group = SettingCardGroup("Help & Documentation 📚", self.scrollWidget)
@@ -762,7 +756,7 @@ class SettingsPage(ScrollArea):
             group
         )
         group.addSettingCard(self.opencore_docs_card)
-        
+
         # Troubleshooting Guide
         self.troubleshoot_card = HyperlinkCard(
             "https://dortania.github.io/OpenCore-Install-Guide/troubleshooting/troubleshooting.html",
@@ -773,10 +767,10 @@ class SettingsPage(ScrollArea):
             group
         )
         group.addSettingCard(self.troubleshoot_card)
-        
+
         # GitHub Repository
         self.github_card = HyperlinkCard(
-            "https://github.com/rubentalstra/OpCore-Simplify",
+            "https://github.com/lzhoang2801/OpCore-Simplify",
             "View on GitHub",
             FluentIcon.GITHUB,
             "OpCore-Simplify Repository",
@@ -848,8 +842,8 @@ class SettingsPage(ScrollArea):
             if hasattr(self, 'picker_mode_card'):
                 self.picker_mode_card.setValue("Auto")
             self.hide_aux_card.switchButton.setChecked(False)
-            if hasattr(self, 'timeout_card'):
-                self.timeout_card.setValue(5)
+            if hasattr(self, 'timeout_spin'):
+                self.timeout_spin.setValue(5)
             if hasattr(self, 'picker_variant_card'):
                 self.picker_variant_card.setValue("Auto")
             self.disable_sip_card.switchButton.setChecked(True)
