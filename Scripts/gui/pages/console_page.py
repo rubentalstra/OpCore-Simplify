@@ -11,8 +11,8 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QWidget,
-    QGridLayout,
 )
+from PyQt6.QtGui import QCursor
 from qfluentwidgets import (
     BodyLabel,
     CardWidget,
@@ -368,8 +368,6 @@ class ConsolePage(ScrollArea):
     
     def _show_more_menu(self):
         """Show a menu with additional console options"""
-        from PyQt6.QtGui import QCursor
-        
         menu = RoundMenu(parent=self.scrollWidget)
         
         # Select all action
@@ -423,8 +421,6 @@ class ConsolePage(ScrollArea):
     
     def _show_quick_filter_menu(self):
         """Show quick filter menu with preset filters"""
-        from PyQt6.QtGui import QCursor
-        
         menu = RoundMenu(parent=self.scrollWidget)
         
         # Show only errors
@@ -437,49 +433,25 @@ class ConsolePage(ScrollArea):
         warnings_action.triggered.connect(lambda: self._quick_filter("Warning"))
         menu.addAction(warnings_action)
         
-        # Show errors and warnings
-        err_warn_action = Action(FluentIcon.INFO, "Show Errors & Warnings")
-        err_warn_action.triggered.connect(lambda: self._quick_filter("Error,Warning"))
-        menu.addAction(err_warn_action)
-        
-        menu.addSeparator()
-        
-        # Show last 10 entries
-        last10_action = Action(FluentIcon.HISTORY, "Show Last 10 Entries")
-        last10_action.triggered.connect(lambda: self._show_last_n_entries(10))
-        menu.addAction(last10_action)
-        
-        # Show last 50 entries
-        last50_action = Action(FluentIcon.HISTORY, "Show Last 50 Entries")
-        last50_action.triggered.connect(lambda: self._show_last_n_entries(50))
-        menu.addAction(last50_action)
+        # Show only info
+        info_action = Action(FluentIcon.INFO, "Show Only Info")
+        info_action.triggered.connect(lambda: self._quick_filter("Info"))
+        menu.addAction(info_action)
         
         menu.addSeparator()
         
         # Clear all filters
-        clear_action = Action(FluentIcon.CANCEL, "Clear All Filters")
+        clear_action = Action(FluentIcon.ACCEPT, "Show All Levels")
         clear_action.triggered.connect(self._clear_all_filters)
         menu.addAction(clear_action)
         
-        # Show menu near the quick filter button
+        # Show menu at cursor position
         menu.exec(QCursor.pos())
     
     def _quick_filter(self, level: str):
         """Apply a quick filter"""
-        if "," in level:
-            # Multiple levels - for now just set to All and show message
-            self.level_filter.setCurrentText("All")
-            self.controller.update_status("Filter applied - showing errors and warnings", 'info')
-        else:
-            self.level_filter.setCurrentText(level)
-            self.controller.update_status(f"Filter applied - showing only {level}", 'info')
-    
-    def _show_last_n_entries(self, n: int):
-        """Show only the last N entries"""
-        # This is a simplified implementation - shows all but informs user
-        self.level_filter.setCurrentText("All")
-        self.search_input.clear()
-        self.controller.update_status(f"Showing recent entries (last {n})", 'info')
+        self.level_filter.setCurrentText(level)
+        self.controller.update_status(f"Filter applied - showing only {level}", 'info')
 
     def refresh(self):
         """Allow parent controller to request a soft refresh."""
