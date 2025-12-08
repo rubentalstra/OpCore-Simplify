@@ -447,6 +447,35 @@ class OpCoreGUI(FluentWindow):
         if to_build_log and self.build_log:
             for line in lines:
                 self.build_log.append(line)
+            
+            # Also add to activity feed in build page if available and build is in progress
+            if hasattr(self, 'buildPage') and self.buildPage.build_in_progress:
+                for line in lines:
+                    if line.strip():  # Only add non-empty lines
+                        # Determine entry type based on content
+                        entry_type = "info"
+                        icon = None
+                        
+                        if "downloading" in line.lower() or "download" in line.lower():
+                            entry_type = "download"
+                            icon = FluentIcon.DOWNLOAD
+                        elif "extracted" in line.lower() or "processing" in line.lower():
+                            entry_type = "process"
+                            icon = FluentIcon.SYNC
+                        elif "✓" in line or "success" in line.lower() or "complete" in line.lower():
+                            entry_type = "success"
+                            icon = FluentIcon.COMPLETED
+                        elif "⚠" in line or "warning" in line.lower():
+                            entry_type = "warning"
+                            icon = FluentIcon.IMPORTANT
+                        elif "✗" in line or "error" in line.lower() or "failed" in line.lower():
+                            entry_type = "error"
+                            icon = FluentIcon.CLOSE
+                        elif line.startswith("Phase") or line.startswith("[Step"):
+                            entry_type = "step"
+                            icon = FluentIcon.CHEVRON_RIGHT
+                        
+                        self.buildPage.add_log_entry(line, entry_type, icon)
 
     def _handle_build_complete(self, success, bios_requirements):
         """Handle build completion signal on main thread"""
@@ -897,6 +926,11 @@ class OpCoreGUI(FluentWindow):
             elif status == 'processing':
                 self.progress_label.setText(
                     f"✓ Processing ({current}/{total}): {product_name}")
+        
+        # Update build page statistics
+        if hasattr(self, 'buildPage') and self.buildPage.build_in_progress:
+            self.buildPage.files_count_label.setText(str(current))
+            self.buildPage.current_phase_label.setText("Gathering Files")
 
         # Enhanced logging with better structure
         if status == 'complete':
@@ -953,6 +987,11 @@ class OpCoreGUI(FluentWindow):
                 # Add step counter for better context
                 step_counter = f"Step {current_step_index + 1}/{len(steps)}"
                 self.progress_label.setText(f"⚙ {step_counter}: {step_text}...")
+        
+        # Update build page statistics
+        if hasattr(self, 'buildPage') and self.buildPage.build_in_progress:
+            if "Building" in title:
+                self.buildPage.current_phase_label.setText("Building EFI")
                 
         # Enhanced logging with better structure
         if done:
