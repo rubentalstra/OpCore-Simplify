@@ -8,8 +8,7 @@ from PyQt6.QtCore import Qt
 from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel, CardWidget, TextEdit,
     StrongBodyLabel, ProgressBar, PrimaryPushButton, FluentIcon,
-    ScrollArea, InfoBar, InfoBarPosition, GroupHeaderCardWidget,
-    TitleLabel
+    ScrollArea, InfoBar, InfoBarPosition, TitleLabel
 )
 
 from ..styles import COLORS, SPACING, RADIUS
@@ -71,20 +70,27 @@ class BuildPage(ScrollArea):
 
         layout.addSpacing(SPACING['medium'])
 
-        # Build instructions card using GroupHeaderCardWidget
-        instructions_card = GroupHeaderCardWidget(self.scrollWidget)
-        instructions_card.setTitle("Before You Build")
+        # Build instructions card using simple CardWidget
+        instructions_card = CardWidget(self.scrollWidget)
         instructions_card.setBorderRadius(RADIUS['card'])
+        instructions_card_layout = QVBoxLayout(instructions_card)
+        instructions_card_layout.setContentsMargins(SPACING['large'], SPACING['large'], 
+                                                    SPACING['large'], SPACING['large'])
+        instructions_card_layout.setSpacing(SPACING['medium'])
         
-        # Add icon to header
-        instructions_icon_label = build_icon_label(FluentIcon.INFO, COLORS['note_text'], size=24)
-        instructions_card.headerLayout.insertWidget(0, instructions_icon_label)
+        # Card header with icon
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(SPACING['medium'])
+        instructions_icon = build_icon_label(FluentIcon.INFO, COLORS['note_text'], size=28)
+        header_layout.addWidget(instructions_icon)
         
-        # Instructions content using addGroup
-        instructions_content = QWidget()
-        instructions_layout = QVBoxLayout(instructions_content)
-        instructions_layout.setContentsMargins(SPACING['medium'], SPACING['small'], SPACING['medium'], SPACING['medium'])
+        header_title = SubtitleLabel("Before You Build")
+        header_title.setStyleSheet(f"color: {COLORS['text_primary']}; font-weight: 600;")
+        header_layout.addWidget(header_title)
+        header_layout.addStretch()
+        instructions_card_layout.addLayout(header_layout)
         
+        # Instructions content
         instructions_text = BodyLabel(
             "The build process will:\n\n"
             "• Download the latest OpenCore bootloader and required kexts\n"
@@ -94,45 +100,47 @@ class BuildPage(ScrollArea):
             "📊 Progress will be shown below with real-time status updates."
         )
         instructions_text.setWordWrap(True)
-        instructions_text.setStyleSheet(f"color: {COLORS['text_secondary']}; line-height: 1.8;")
-        instructions_layout.addWidget(instructions_text)
-        
-        instructions_card.addGroup(FluentIcon.INFO, "Build Process", "What happens during the build", instructions_content)
+        instructions_text.setStyleSheet(f"color: {COLORS['text_secondary']}; line-height: 1.9; font-size: 14px;")
+        instructions_card_layout.addWidget(instructions_text)
         
         layout.addWidget(instructions_card)
 
-        # Build control card using GroupHeaderCardWidget  
-        build_control_card = GroupHeaderCardWidget(self.scrollWidget)
-        build_control_card.setTitle("Build Control")
+        # Build control card using simple CardWidget
+        build_control_card = CardWidget(self.scrollWidget)
         build_control_card.setBorderRadius(RADIUS['card'])
+        build_control_layout = QVBoxLayout(build_control_card)
+        build_control_layout.setContentsMargins(SPACING['large'], SPACING['large'],
+                                               SPACING['large'], SPACING['large'])
+        build_control_layout.setSpacing(SPACING['large'])
         
-        # Add icon to build control header
-        build_icon_header = build_icon_label(FluentIcon.DEVELOPER_TOOLS, COLORS['primary'], size=24)
-        build_control_card.headerLayout.insertWidget(0, build_icon_header)
+        # Card header
+        control_header_layout = QHBoxLayout()
+        control_header_layout.setSpacing(SPACING['medium'])
+        control_icon = build_icon_label(FluentIcon.DEVELOPER_TOOLS, COLORS['primary'], size=28)
+        control_header_layout.addWidget(control_icon)
+        
+        control_title = SubtitleLabel("Build Control")
+        control_title.setStyleSheet(f"color: {COLORS['text_primary']}; font-weight: 600;")
+        control_header_layout.addWidget(control_title)
+        control_header_layout.addStretch()
+        build_control_layout.addLayout(control_header_layout)
 
-        # Build button with better styling
-        build_btn_container = QWidget()
-        build_btn_layout = QVBoxLayout(build_btn_container)
-        build_btn_layout.setContentsMargins(SPACING['medium'], SPACING['small'], SPACING['medium'], SPACING['small'])
-        build_btn_layout.setSpacing(SPACING['small'])
-        
+        # Build button - FULL WIDTH
         self.build_btn = PrimaryPushButton(FluentIcon.DEVELOPER_TOOLS, "Build OpenCore EFI")
         self.build_btn.clicked.connect(self.start_build)
-        self.build_btn.setFixedHeight(44)
+        self.build_btn.setFixedHeight(48)
         self.controller.build_btn = self.build_btn
-        build_btn_layout.addWidget(self.build_btn)
+        build_control_layout.addWidget(self.build_btn)
         
         build_hint = BodyLabel("Click to start building your customized EFI")
         build_hint.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 12px;")
         build_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        build_btn_layout.addWidget(build_hint)
-        
-        build_control_card.addGroup(FluentIcon.PLAY, "Start Build", "Click the button below to begin", build_btn_container)
+        build_control_layout.addWidget(build_hint)
 
-        # Progress section (initially hidden)
+        # Progress section (initially hidden) - FULL WIDTH
         self.progress_container = QWidget()
         progress_layout = QVBoxLayout(self.progress_container)
-        progress_layout.setContentsMargins(SPACING['medium'], SPACING['medium'], SPACING['medium'], SPACING['medium'])
+        progress_layout.setContentsMargins(0, SPACING['medium'], 0, 0)
         progress_layout.setSpacing(SPACING['medium'])
 
         # Progress status with larger, more visible icon
@@ -140,91 +148,104 @@ class BuildPage(ScrollArea):
         status_row.setSpacing(SPACING['medium'])
         
         self.status_icon_label = QLabel()
-        self.status_icon_label.setFixedSize(24, 24)
+        self.status_icon_label.setFixedSize(28, 28)
         status_row.addWidget(self.status_icon_label)
         
         self.progress_label = StrongBodyLabel("Ready to build")
-        self.progress_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 14px;")
+        self.progress_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 15px; font-weight: 600;")
         status_row.addWidget(self.progress_label)
         status_row.addStretch()
         
         progress_layout.addLayout(status_row)
 
-        # Progress bar with better visibility
+        # Progress bar with better visibility - FULL WIDTH
         self.progress_bar = ProgressBar()
         self.progress_bar.setValue(0)
-        self.progress_bar.setFixedHeight(8)
+        self.progress_bar.setFixedHeight(10)
+        self.progress_bar.setTextVisible(True)
         self.controller.progress_bar = self.progress_bar
         progress_layout.addWidget(self.progress_bar)
         
         self.controller.progress_label = self.progress_label
         self.progress_container.setVisible(False)
         
-        build_control_card.addGroup(FluentIcon.SYNC, "Build Progress", "Current build status", self.progress_container)
+        build_control_layout.addWidget(self.progress_container)
         layout.addWidget(build_control_card)
 
-        # Build log card using GroupHeaderCardWidget
-        log_card = GroupHeaderCardWidget(self.scrollWidget)
-        log_card.setTitle("Build Log")
+        # Build log card using simple CardWidget - FULL WIDTH
+        log_card = CardWidget(self.scrollWidget)
         log_card.setBorderRadius(RADIUS['card'])
+        log_card_layout = QVBoxLayout(log_card)
+        log_card_layout.setContentsMargins(SPACING['large'], SPACING['large'],
+                                          SPACING['large'], SPACING['large'])
+        log_card_layout.setSpacing(SPACING['medium'])
         
-        # Add icon to log header
-        log_icon_header = build_icon_label(FluentIcon.DOCUMENT, COLORS['primary'], size=24)
-        log_card.headerLayout.insertWidget(0, log_icon_header)
+        # Card header
+        log_header_layout = QHBoxLayout()
+        log_header_layout.setSpacing(SPACING['medium'])
+        log_icon = build_icon_label(FluentIcon.DOCUMENT, COLORS['primary'], size=28)
+        log_header_layout.addWidget(log_icon)
         
-        # Log description and content
-        log_content_widget = QWidget()
-        log_content_layout = QVBoxLayout(log_content_widget)
-        log_content_layout.setContentsMargins(0, 0, 0, 0)
-        log_content_layout.setSpacing(SPACING['small'])
+        log_title = SubtitleLabel("Build Log")
+        log_title.setStyleSheet(f"color: {COLORS['text_primary']}; font-weight: 600;")
+        log_header_layout.addWidget(log_title)
+        log_header_layout.addStretch()
+        log_card_layout.addLayout(log_header_layout)
         
         log_description = BodyLabel("Detailed build process information and status updates")
-        log_description.setStyleSheet(f"color: {COLORS['text_secondary']};")
-        log_content_layout.addWidget(log_description)
+        log_description.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 13px;")
+        log_card_layout.addWidget(log_description)
 
-        # Build log text area with improved styling
-        log_container = QWidget()
-        log_container_layout = QVBoxLayout(log_container)
-        log_container_layout.setContentsMargins(0, SPACING['small'], 0, 0)
-        
+        # Build log text area - FULL WIDTH
         self.build_log = TextEdit()
         self.build_log.setReadOnly(True)
         self.build_log.setPlainText(DEFAULT_LOG_TEXT)
-        self.build_log.setMinimumHeight(350)
+        self.build_log.setMinimumHeight(400)
         self.build_log.setStyleSheet(f"""
             TextEdit {{
-                background-color: rgba(0, 0, 0, 0.02);
-                border: 1px solid rgba(0, 0, 0, 0.06);
+                background-color: rgba(0, 0, 0, 0.03);
+                border: 1px solid rgba(0, 0, 0, 0.08);
                 border-radius: {RADIUS['small']}px;
-                padding: {SPACING['medium']}px;
+                padding: {SPACING['large']}px;
                 font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
                 font-size: 13px;
-                line-height: 1.6;
+                line-height: 1.7;
             }}
         """)
         self.controller.build_log = self.build_log
-        log_container_layout.addWidget(self.build_log)
+        log_card_layout.addWidget(self.build_log)
         
-        log_content_layout.addWidget(log_container)
-        
-        log_card.addGroup(FluentIcon.DOCUMENT, "Log Output", "Real-time build process logs", log_content_widget)
         layout.addWidget(log_card)
 
-        # Success card using GroupHeaderCardWidget (initially hidden)
-        self.success_card = GroupHeaderCardWidget(self.scrollWidget)
-        self.success_card.setTitle("Build Completed Successfully!")
+        # Success card using simple CardWidget (initially hidden)
+        self.success_card = CardWidget(self.scrollWidget)
         self.success_card.setBorderRadius(RADIUS['card'])
+        success_card_layout = QVBoxLayout(self.success_card)
+        success_card_layout.setContentsMargins(SPACING['large'], SPACING['large'],
+                                              SPACING['large'], SPACING['large'])
+        success_card_layout.setSpacing(SPACING['medium'])
         
-        # Add success icon to header
-        success_icon_header = build_icon_label(FluentIcon.COMPLETED, COLORS['success'], size=32)
-        self.success_card.headerLayout.insertWidget(0, success_icon_header)
+        # Success styling
+        self.success_card.setStyleSheet(f"""
+            CardWidget {{
+                background-color: {COLORS['success_bg']};
+                border: 2px solid {COLORS['success']};
+            }}
+        """)
+        
+        # Card header
+        success_header_layout = QHBoxLayout()
+        success_header_layout.setSpacing(SPACING['medium'])
+        success_icon = build_icon_label(FluentIcon.COMPLETED, COLORS['success'], size=32)
+        success_header_layout.addWidget(success_icon)
+        
+        success_title = SubtitleLabel("Build Completed Successfully!")
+        success_title.setStyleSheet(f"color: {COLORS['success']}; font-weight: 600;")
+        success_header_layout.addWidget(success_title)
+        success_header_layout.addStretch()
+        success_card_layout.addLayout(success_header_layout)
         
         # Success content
-        success_content = QWidget()
-        success_content_layout = QVBoxLayout(success_content)
-        success_content_layout.setContentsMargins(SPACING['medium'], SPACING['small'], SPACING['medium'], SPACING['medium'])
-        success_content_layout.setSpacing(SPACING['medium'])
-        
         success_message = BodyLabel(
             "🎉 Your OpenCore EFI has been built successfully!\n\n"
             "The EFI folder is ready for installation. You can now:\n"
@@ -233,56 +254,60 @@ class BuildPage(ScrollArea):
             "• Copy the EFI to your USB drive or EFI partition"
         )
         success_message.setWordWrap(True)
-        success_message.setStyleSheet(f"color: {COLORS['text_secondary']}; line-height: 1.8;")
-        success_content_layout.addWidget(success_message)
+        success_message.setStyleSheet(f"color: {COLORS['text_secondary']}; line-height: 1.9; font-size: 14px;")
+        success_card_layout.addWidget(success_message)
 
-        # Action buttons with better layout
-        buttons_layout = QHBoxLayout()
-        buttons_layout.setSpacing(SPACING['medium'])
-        
+        # Action button - FULL WIDTH
         self.open_result_btn = PrimaryPushButton(FluentIcon.FOLDER, "Open Result Folder")
         self.open_result_btn.clicked.connect(self.open_result)
-        self.open_result_btn.setFixedHeight(40)
-        buttons_layout.addWidget(self.open_result_btn)
+        self.open_result_btn.setFixedHeight(44)
+        success_card_layout.addWidget(self.open_result_btn)
         
-        buttons_layout.addStretch()
-        success_content_layout.addLayout(buttons_layout)
-        
-        self.success_card.addGroup(FluentIcon.COMPLETED, "Success", "Your EFI is ready!", success_content)
         self.controller.open_result_btn = self.open_result_btn
         
         self.success_card.setVisible(False)
         layout.addWidget(self.success_card)
 
-        # Post-build instructions card using GroupHeaderCardWidget (initially hidden)
-        self.instructions_after_build_card = GroupHeaderCardWidget(self.scrollWidget)
-        self.instructions_after_build_card.setTitle("Important: Before Using Your EFI")
+        # Post-build instructions card using simple CardWidget (initially hidden)
+        self.instructions_after_build_card = CardWidget(self.scrollWidget)
         self.instructions_after_build_card.setBorderRadius(RADIUS['card'])
+        instructions_after_layout = QVBoxLayout(self.instructions_after_build_card)
+        instructions_after_layout.setContentsMargins(SPACING['large'], SPACING['large'],
+                                                     SPACING['large'], SPACING['large'])
+        instructions_after_layout.setSpacing(SPACING['medium'])
         
-        # Add warning icon to header
-        warning_icon_header = build_icon_label(FluentIcon.MEGAPHONE, COLORS['warning_text'], size=28)
-        self.instructions_after_build_card.headerLayout.insertWidget(0, warning_icon_header)
+        # Warning styling
+        self.instructions_after_build_card.setStyleSheet(f"""
+            CardWidget {{
+                background-color: {COLORS['warning_bg']};
+                border: 2px solid {COLORS['warning']};
+            }}
+        """)
         
-        # Instructions content container
-        instructions_after_container = QWidget()
-        instructions_after_container_layout = QVBoxLayout(instructions_after_container)
-        instructions_after_container_layout.setContentsMargins(SPACING['medium'], SPACING['small'], SPACING['medium'], SPACING['medium'])
-        instructions_after_container_layout.setSpacing(SPACING['small'])
+        # Card header
+        warning_header_layout = QHBoxLayout()
+        warning_header_layout.setSpacing(SPACING['medium'])
+        warning_icon = build_icon_label(FluentIcon.MEGAPHONE, COLORS['warning_text'], size=32)
+        warning_header_layout.addWidget(warning_icon)
+        
+        warning_title = SubtitleLabel("Important: Before Using Your EFI")
+        warning_title.setStyleSheet(f"color: {COLORS['warning_text']}; font-weight: 600;")
+        warning_header_layout.addWidget(warning_title)
+        warning_header_layout.addStretch()
+        instructions_after_layout.addLayout(warning_header_layout)
         
         instructions_after_intro = BodyLabel(
             "Please complete these important steps before using the built EFI:"
         )
-        instructions_after_intro.setStyleSheet(f"color: {COLORS['text_secondary']};")
-        instructions_after_container_layout.addWidget(instructions_after_intro)
+        instructions_after_intro.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 14px;")
+        instructions_after_layout.addWidget(instructions_after_intro)
         
         # Content area for requirements (will be populated dynamically)
         self.instructions_after_content = QWidget()
         self.instructions_after_content_layout = QVBoxLayout(self.instructions_after_content)
-        self.instructions_after_content_layout.setContentsMargins(0, SPACING['medium'], 0, 0)
+        self.instructions_after_content_layout.setContentsMargins(0, 0, 0, 0)
         self.instructions_after_content_layout.setSpacing(SPACING['medium'])
-        instructions_after_container_layout.addWidget(self.instructions_after_content)
-        
-        self.instructions_after_build_card.addGroup(FluentIcon.INFO, "Post-Build Steps", "Follow these steps before using your EFI", instructions_after_container)
+        instructions_after_layout.addWidget(self.instructions_after_content)
         
         self.instructions_after_build_card.setVisible(False)
         layout.addWidget(self.instructions_after_build_card)
@@ -343,7 +368,7 @@ class BuildPage(ScrollArea):
 
     def update_status_icon(self, status):
         """Update status icon based on build state with improved visibility"""
-        icon_size = 24  # Increased size for better visibility
+        icon_size = 28  # Increased size for better visibility
         icon_map = {
             "building": (FluentIcon.SYNC, COLORS['primary']),
             "success": (FluentIcon.COMPLETED, COLORS['success']),
