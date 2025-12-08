@@ -9,7 +9,7 @@ from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel, CardWidget, TextEdit,
     StrongBodyLabel, ProgressBar, PrimaryPushButton, FluentIcon,
     ScrollArea, InfoBar, InfoBarPosition, GroupHeaderCardWidget,
-    TitleLabel, ExpandGroupSettingCard, PushSettingCard, setFont
+    TitleLabel
 )
 
 from ..styles import COLORS, SPACING, RADIUS
