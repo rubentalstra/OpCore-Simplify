@@ -1,5 +1,6 @@
 """Console log page - elevated qfluentwidgets experience"""
 
+import re
 from datetime import datetime
 
 from PyQt6.QtCore import Qt
@@ -28,6 +29,8 @@ from qfluentwidgets import (
     CommandBar,
     Action,
     RoundMenu,
+    SettingCardGroup,
+    SwitchSettingCard,
 )
 
 from ..styles import COLORS, SPACING, RADIUS
@@ -85,78 +88,115 @@ class ConsolePage(ScrollArea):
 
         layout.addWidget(header_container)
 
-        # Filter and controls card
-        controls_card = CardWidget()
-        controls_layout = QVBoxLayout(controls_card)
-        controls_layout.setContentsMargins(
-            SPACING['large'],
-            SPACING['large'],
-            SPACING['large'],
-            SPACING['large'],
-        )
-        controls_layout.setSpacing(SPACING['medium'])
-
-        controls_header = QHBoxLayout()
-        controls_title = StrongBodyLabel("Filter Controls")
-        controls_header.addWidget(controls_title)
-        controls_header.addStretch()
-        self.filter_status_label = BodyLabel("Showing all logs")
-        self.filter_status_label.setStyleSheet(
-            f"color: {COLORS['text_secondary']};"
-        )
-        controls_header.addWidget(self.filter_status_label)
-        controls_layout.addLayout(controls_header)
-
-        filter_row = QHBoxLayout()
-        filter_row.setSpacing(SPACING['medium'])
-
-        # Add icon label for level filter
-        filter_desc = BodyLabel("Level:")
-        filter_row.addWidget(filter_desc)
-
+        # Filter controls using SettingCardGroup (qfluentwidgets best practice)
+        filter_group = SettingCardGroup("Filter and Display Options", self.scrollWidget)
+        
+        # Level filter card
+        level_card = CardWidget()
+        level_layout = QHBoxLayout(level_card)
+        level_layout.setContentsMargins(SPACING['large'], SPACING['medium'], SPACING['large'], SPACING['medium'])
+        
+        level_label_container = QVBoxLayout()
+        level_label_container.setSpacing(SPACING['tiny'])
+        level_title = StrongBodyLabel("Log Level Filter")
+        level_desc = BodyLabel("Filter logs by severity level")
+        level_desc.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 12px;")
+        level_label_container.addWidget(level_title)
+        level_label_container.addWidget(level_desc)
+        
+        level_layout.addLayout(level_label_container)
+        level_layout.addStretch()
+        
         self.level_filter = ComboBox()
         self.level_filter.addItems(self.LEVELS)
         self.level_filter.currentTextChanged.connect(self._apply_filters)
         self.level_filter.setMinimumWidth(140)
-        filter_row.addWidget(self.level_filter)
-
+        level_layout.addWidget(self.level_filter)
+        
+        filter_group.addSettingCard(level_card)
+        
+        # Search filter card
+        search_card = CardWidget()
+        search_layout = QHBoxLayout(search_card)
+        search_layout.setContentsMargins(SPACING['large'], SPACING['medium'], SPACING['large'], SPACING['medium'])
+        
+        search_label_container = QVBoxLayout()
+        search_label_container.setSpacing(SPACING['tiny'])
+        search_title = StrongBodyLabel("Search Logs")
+        search_desc = BodyLabel("Search for specific text in log messages")
+        search_desc.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 12px;")
+        search_label_container.addWidget(search_title)
+        search_label_container.addWidget(search_desc)
+        
+        search_layout.addLayout(search_label_container)
+        search_layout.addStretch()
+        
         self.search_input = LineEdit()
-        self.search_input.setPlaceholderText("🔍 Search in logs...")
+        self.search_input.setPlaceholderText("Search in logs...")
         self.search_input.setClearButtonEnabled(True)
         self.search_input.textChanged.connect(self._apply_filters)
-        filter_row.addWidget(self.search_input, stretch=1)
+        self.search_input.setMinimumWidth(250)
+        search_layout.addWidget(self.search_input)
         
-        # Quick filter button with menu
-        self.quick_filter_btn = PushButton(FluentIcon.FILTER, "Quick Filters")
+        filter_group.addSettingCard(search_card)
+        
+        # Quick filter card
+        quick_filter_card = CardWidget()
+        quick_filter_layout = QHBoxLayout(quick_filter_card)
+        quick_filter_layout.setContentsMargins(SPACING['large'], SPACING['medium'], SPACING['large'], SPACING['medium'])
+        
+        quick_label_container = QVBoxLayout()
+        quick_label_container.setSpacing(SPACING['tiny'])
+        quick_title = StrongBodyLabel("Quick Filters")
+        quick_desc = BodyLabel("Apply preset filters for common scenarios")
+        quick_desc.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 12px;")
+        quick_label_container.addWidget(quick_title)
+        quick_label_container.addWidget(quick_desc)
+        
+        quick_filter_layout.addLayout(quick_label_container)
+        quick_filter_layout.addStretch()
+        
+        self.quick_filter_btn = PushButton(FluentIcon.FILTER, "Show Presets")
         self.quick_filter_btn.clicked.connect(self._show_quick_filter_menu)
-        filter_row.addWidget(self.quick_filter_btn)
-
-        controls_layout.addLayout(filter_row)
-
-        # Toggle switches row
-        toggle_row = QHBoxLayout()
-        toggle_row.setSpacing(SPACING['large'])
-
-        self.auto_scroll_switch = SwitchButton()
-        self.auto_scroll_switch.setChecked(True)
-        self.auto_scroll_switch.checkedChanged.connect(self._toggle_auto_scroll)
-
-        auto_scroll_container = self._build_toggle_container(
-            "Auto-scroll", "Automatically scroll to newest entries", self.auto_scroll_switch
+        quick_filter_layout.addWidget(self.quick_filter_btn)
+        
+        filter_group.addSettingCard(quick_filter_card)
+        
+        # Auto-scroll setting card
+        self.auto_scroll_card = SwitchSettingCard(
+            FluentIcon.DOWN,
+            "Auto-scroll",
+            "Automatically scroll to newest entries when new logs arrive",
+            parent=self.scrollWidget
         )
-        toggle_row.addWidget(auto_scroll_container, stretch=1)
-
-        self.wrap_switch = SwitchButton()
-        self.wrap_switch.setChecked(True)
-        self.wrap_switch.checkedChanged.connect(self._toggle_wrap_mode)
-
-        wrap_container = self._build_toggle_container(
-            "Word wrap", "Wrap long lines for better readability", self.wrap_switch
+        self.auto_scroll_card.switchButton.setChecked(True)
+        self.auto_scroll_card.switchButton.checkedChanged.connect(self._toggle_auto_scroll)
+        filter_group.addSettingCard(self.auto_scroll_card)
+        
+        # Word wrap setting card
+        self.wrap_card = SwitchSettingCard(
+            FluentIcon.ALIGNMENT,
+            "Word Wrap",
+            "Wrap long lines for better readability",
+            parent=self.scrollWidget
         )
-        toggle_row.addWidget(wrap_container, stretch=1)
-
-        controls_layout.addLayout(toggle_row)
-        layout.addWidget(controls_card)
+        self.wrap_card.switchButton.setChecked(True)
+        self.wrap_card.switchButton.checkedChanged.connect(self._toggle_wrap_mode)
+        filter_group.addSettingCard(self.wrap_card)
+        
+        layout.addWidget(filter_group)
+        
+        # Filter status info
+        status_container = QWidget()
+        status_layout = QHBoxLayout(status_container)
+        status_layout.setContentsMargins(SPACING['large'], SPACING['small'], SPACING['large'], SPACING['small'])
+        
+        self.filter_status_label = BodyLabel("Showing all logs")
+        self.filter_status_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
+        status_layout.addWidget(self.filter_status_label)
+        status_layout.addStretch()
+        
+        layout.addWidget(status_container)
 
         # Console output card
         console_card = CardWidget()
@@ -234,31 +274,6 @@ class ConsolePage(ScrollArea):
 
         layout.addWidget(console_card)
         layout.addStretch()
-
-    def _build_toggle_container(self, title: str, description: str, switch: SwitchButton) -> CardWidget:
-        """Build a toggle switch container with title and description"""
-        container = CardWidget()
-        container.setObjectName("toggleContainer")
-        
-        inner_layout = QHBoxLayout(container)
-        inner_layout.setContentsMargins(SPACING['medium'], SPACING['medium'], SPACING['medium'], SPACING['medium'])
-        inner_layout.setSpacing(SPACING['medium'])
-
-        text_column = QVBoxLayout()
-        text_column.setSpacing(SPACING['tiny'])
-        
-        title_label = StrongBodyLabel(title)
-        text_column.addWidget(title_label)
-        
-        desc_label = BodyLabel(description)
-        desc_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 12px;")
-        text_column.addWidget(desc_label)
-
-        inner_layout.addLayout(text_column)
-        inner_layout.addStretch()
-        inner_layout.addWidget(switch)
-
-        return container
 
     def _apply_filters(self):
         """Apply current filter settings to log entries"""
@@ -353,6 +368,8 @@ class ConsolePage(ScrollArea):
     
     def _show_more_menu(self):
         """Show a menu with additional console options"""
+        from PyQt6.QtGui import QCursor
+        
         menu = RoundMenu(parent=self.scrollWidget)
         
         # Select all action
@@ -388,13 +405,12 @@ class ConsolePage(ScrollArea):
         menu.addAction(clear_filters_action)
         
         # Show menu at cursor position
-        menu.exec(self.command_bar.mapToGlobal(self.command_bar.rect().bottomRight()))
+        menu.exec(QCursor.pos())
     
     def _set_font_size(self, size: int):
         """Set the console text font size"""
         current_style = self.console_text.styleSheet()
         # Replace font-size in stylesheet
-        import re
         new_style = re.sub(r'font-size:\s*\d+px;', f'font-size: {size}px;', current_style)
         self.console_text.setStyleSheet(new_style)
         self.controller.update_status(f"Console font size set to {size}px", 'success')
@@ -407,6 +423,8 @@ class ConsolePage(ScrollArea):
     
     def _show_quick_filter_menu(self):
         """Show quick filter menu with preset filters"""
+        from PyQt6.QtGui import QCursor
+        
         menu = RoundMenu(parent=self.scrollWidget)
         
         # Show only errors
@@ -444,7 +462,7 @@ class ConsolePage(ScrollArea):
         menu.addAction(clear_action)
         
         # Show menu near the quick filter button
-        menu.exec(self.quick_filter_btn.mapToGlobal(self.quick_filter_btn.rect().bottomLeft()))
+        menu.exec(QCursor.pos())
     
     def _quick_filter(self, level: str):
         """Apply a quick filter"""
