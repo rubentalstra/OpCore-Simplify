@@ -141,12 +141,9 @@ class gatheringFiles:
         return True
     
     def gather_bootloader_kexts(self, kexts, macos_version):
-        # Use log_gui for better GUI integration instead of head/print
-        self.utils.log_gui("═" * 60, to_build_log=True, fallback_stdout=False)
-        self.utils.log_gui("Gathering Required Files", to_build_log=True, fallback_stdout=False)
-        self.utils.log_gui("═" * 60, to_build_log=True, fallback_stdout=False)
-        self.utils.log_gui("", to_build_log=True, fallback_stdout=False)
+        # Log gathering start
         self.utils.log_gui("Preparing to download OpenCorePkg, kexts, and macserial...", to_build_log=True)
+        self.utils.log_gui("", to_build_log=True, fallback_stdout=False)
 
         download_history = self.utils.read_file(self.download_history_file)
         if not isinstance(download_history, list):

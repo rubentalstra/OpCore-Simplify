@@ -659,9 +659,6 @@ class OpCoreGUI(FluentWindow):
                 # Phase 1: Gathering bootloader and kexts
                 self.update_status_signal.emit(
                     "Phase 1/2: Gathering required files...", 'info')
-                self.log_message("\n" + "="*60, to_console=False, to_build_log=True)
-                self.log_message("🚀 Starting Build Process", to_console=False, to_build_log=True)
-                self.log_message("="*60, to_console=False, to_build_log=True)
                 self.log_message("\nPhase 1: Gathering Files", to_console=False, to_build_log=True)
                 self.log_message("-" * 60, to_console=False, to_build_log=True)
                 
@@ -768,8 +765,7 @@ class OpCoreGUI(FluentWindow):
             self.log_message("\n" + "="*60, to_console=False, to_build_log=True)
             self.log_message("✓ File Gathering Complete!", to_console=False, to_build_log=True)
             self.log_message("="*60, to_console=False, to_build_log=True)
-            self.log_message(f"  Total files downloaded: {total}", to_console=False, to_build_log=True)
-            self.log_message("", to_console=False, to_build_log=True)
+            self.log_message(f"  Total files downloaded: {total}\n", to_console=False, to_build_log=True)
         elif status == 'downloading':
             self.log_message(
                 f"  [{current}/{total}] ⬇ Downloading: {product_name}", 
@@ -824,8 +820,8 @@ class OpCoreGUI(FluentWindow):
         if done:
             self.log_message("\n" + "="*60, to_console=False, to_build_log=True)
             self.log_message(f"✓ {title} Complete!", to_console=False, to_build_log=True)
-            self.log_message("="*60, to_console=False, to_build_log=True)
-            self.log_message("\nCompleted steps:", to_console=False, to_build_log=True)
+            self.log_message("="*60 + "\n", to_console=False, to_build_log=True)
+            # Log completed steps in a concise list
             for idx, step in enumerate(steps, 1):
                 self.log_message(
                     f"  {idx}. ✓ {step}", to_console=False, to_build_log=True)
