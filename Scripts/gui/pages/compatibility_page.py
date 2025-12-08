@@ -120,7 +120,7 @@ class CompatibilityPage(ScrollArea):
 
         # Step indicator
         step_label = BodyLabel("STEP 2 OF 4")
-        step_label.setStyleSheet("color: #0078D4; font-weight: bold;")
+        step_label.setStyleSheet(f"color: {COLORS['primary']}; font-weight: bold;")
         self.expandLayout.addWidget(step_label)
 
         # Header section with title and description
@@ -133,7 +133,7 @@ class CompatibilityPage(ScrollArea):
         header_layout.addWidget(title_label)
 
         subtitle_label = BodyLabel("Review hardware compatibility with macOS")
-        subtitle_label.setStyleSheet("color: #605E5C;")
+        subtitle_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
         header_layout.addWidget(subtitle_label)
 
         self.expandLayout.addWidget(header_container)

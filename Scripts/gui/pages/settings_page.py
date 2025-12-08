@@ -67,11 +67,11 @@ class SettingsPage(ScrollArea):
         header_layout.addWidget(title_label)
 
         subtitle_label = BodyLabel("Configure OpCore Simplify preferences")
-        subtitle_label.setStyleSheet("color: #605E5C;")
+        subtitle_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
         header_layout.addWidget(subtitle_label)
 
         info_label = BodyLabel("27 settings organized across 9 categories • Changes are saved automatically")
-        info_label.setStyleSheet("color: #8A8886; font-size: 12px;")
+        info_label.setStyleSheet(f"color: {COLORS['text_tertiary']}; font-size: 12px;")
         header_layout.addWidget(info_label)
 
         self.expandLayout.addWidget(header_container)
