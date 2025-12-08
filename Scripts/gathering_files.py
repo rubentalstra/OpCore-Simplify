@@ -141,9 +141,12 @@ class gatheringFiles:
         return True
     
     def gather_bootloader_kexts(self, kexts, macos_version):
-        self.utils.head("Gathering Files")
-        print("")
-        print("Please wait for download OpenCorePkg, kexts and macserial...")
+        # Use log_gui for better GUI integration instead of head/print
+        self.utils.log_gui("═" * 60, to_build_log=True, fallback_stdout=False)
+        self.utils.log_gui("Gathering Required Files", to_build_log=True, fallback_stdout=False)
+        self.utils.log_gui("═" * 60, to_build_log=True, fallback_stdout=False)
+        self.utils.log_gui("", to_build_log=True, fallback_stdout=False)
+        self.utils.log_gui("Preparing to download OpenCorePkg, kexts, and macserial...", to_build_log=True)
 
         download_history = self.utils.read_file(self.download_history_file)
         if not isinstance(download_history, list):
@@ -196,8 +199,7 @@ class gatheringFiles:
                     product_download_index = self.get_product_index(download_database, product.github_repo.get("repo"))
             
             if product_download_index is None:
-                print("\n")
-                print(f"Could not find download URL for {product_name}.")
+                self.utils.log_gui(f"⚠ Could not find download URL for {product_name}", level="Warning", to_build_log=True)
                 continue
 
             product_info = download_database[product_download_index]
@@ -223,18 +225,13 @@ class gatheringFiles:
                     
                     if is_latest_id and folder_is_valid:
                         # Skip this product - already up to date
-                        if self.utils.gui_callback:
-                            # In GUI mode, just print a brief message
-                            print(f"✓ {product_name} already up to date")
-                        else:
-                            # In CLI mode, show the standard message
-                            print(f"\nLatest version of {product_name} already downloaded.")
+                        self.utils.log_gui(f"  ✓ {product_name} (already up to date)", to_build_log=True, fallback_stdout=False)
                         continue
                 else:
                     # Force redownload is enabled, remove existing files
                     if os.path.exists(asset_dir):
                         shutil.rmtree(asset_dir, ignore_errors=True)
-                    print(f"Force redownloading {product_name}...")
+                    self.utils.log_gui(f"  ↻ Force redownloading {product_name}...", to_build_log=True)
             
             # Add to products to download list
             products_to_download.append({
@@ -271,15 +268,16 @@ class gatheringFiles:
                 }
                 self.utils.gui_gathering_progress_callback(progress_info)
 
-            print("")
-            print(f"Downloading {index + 1}/{total_products}: {product_name}")
-            if product_download_url:
-                print(f"from {product_download_url}")
+            # Log download start (suppressed in GUI mode to avoid duplicate messages)
+            if not self.utils.gui_callback:
                 print("")
-            else:
-                print("")
-                print(f"Could not find download URL for {product_name}.")
-                print("")
+                print(f"Downloading {index + 1}/{total_products}: {product_name}")
+                if product_download_url:
+                    print(f"from {product_download_url}")
+                    print("")
+            
+            if not product_download_url:
+                self.utils.log_gui(f"❌ Could not find download URL for {product_name}", level="Error", to_build_log=True)
                 # Only show "Press Enter to continue" prompt in CLI mode
                 if not self.utils.gui_callback:
                     self.utils.request_input()
@@ -292,12 +290,14 @@ class gatheringFiles:
             if not self.fetcher.download_and_save_file(product_download_url, zip_path, sha256_to_verify):
                 folder_is_valid, _ = self.integrity_checker.verify_folder_integrity(asset_dir, manifest_path)
                 if product_history_index is not None and folder_is_valid:
-                    print(f"Using previously downloaded version of {product_name}.")
+                    self.utils.log_gui(f"  ⚠ Download failed, using cached version of {product_name}", level="Warning", to_build_log=True)
                     continue
                 else:
                     raise Exception(f"Could not download {product_name} at this time. Please try again later.")
             
-            print(f"Extracting {product_name}...")
+            # Log extraction (suppressed in GUI mode)
+            if not self.utils.gui_callback:
+                print(f"Extracting {product_name}...")
             self.utils.extract_zip_file(zip_path)
             self.utils.create_folder(asset_dir, remove_content=True)
             
@@ -323,23 +323,27 @@ class gatheringFiles:
                     self.utils.gui_gathering_progress_callback(progress_info)
                 
                 oc_binary_data_zip_path = os.path.join(self.temporary_dir, "OcBinaryData.zip")
-                print("")
-                print("Downloading OcBinaryData...")
-                print(f"from {self.ocbinarydata_url}")
-                print("")
+                
+                # Log OcBinaryData download (suppressed in GUI mode)
+                if not self.utils.gui_callback:
+                    print("")
+                    print("Downloading OcBinaryData...")
+                    print(f"from {self.ocbinarydata_url}")
+                    print("")
+                
                 self.fetcher.download_and_save_file(self.ocbinarydata_url, oc_binary_data_zip_path)
 
                 if not os.path.exists(oc_binary_data_zip_path):
-                    print("")
-                    print("Could not download OcBinaryData at this time.")
-                    print("Please try again later.\n")
+                    self.utils.log_gui("❌ Could not download OcBinaryData at this time. Please try again later.", level="Error", to_build_log=True)
                     # Only show "Press Enter to continue" prompt in CLI mode
                     if not self.utils.gui_callback:
                         self.utils.request_input()
                     shutil.rmtree(self.temporary_dir, ignore_errors=True)
                     return False
                 
-                print("Extracting OcBinaryData...")
+                # Log extraction (suppressed in GUI mode)
+                if not self.utils.gui_callback:
+                    print("Extracting OcBinaryData...")
                 self.utils.extract_zip_file(oc_binary_data_zip_path)
             
             # Update progress for processing
@@ -352,7 +356,10 @@ class gatheringFiles:
                 }
                 self.utils.gui_gathering_progress_callback(progress_info)
             
-            print(f"Processing {product_name}...")
+            # Log processing (suppressed in GUI mode)
+            if not self.utils.gui_callback:
+                print(f"Processing {product_name}...")
+            
             if self.move_bootloader_kexts_to_product_directory(product_name):
                 self.integrity_checker.generate_folder_manifest(asset_dir, manifest_path)
                 self._update_download_history(download_history, product_name, product_id, product_download_url, sha256_hash)
@@ -369,8 +376,10 @@ class gatheringFiles:
             }
             self.utils.gui_gathering_progress_callback(progress_info)
         
-        print("")
-        print("All files gathered successfully!")
+        # Final message (suppressed in GUI mode)
+        if not self.utils.gui_callback:
+            print("")
+            print("All files gathered successfully!")
         return True
     
     def get_kernel_patches(self, patches_name, patches_url):
