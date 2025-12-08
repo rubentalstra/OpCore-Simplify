@@ -21,6 +21,7 @@ from ..ui_utils import build_icon_label, create_step_indicator
 # Constants for build log formatting
 LOG_SEPARATOR = "═" * 60
 DEFAULT_LOG_TEXT = "Build log will appear here..."
+MAX_ACTIVITY_LOG_ENTRIES = 50  # Maximum number of entries to keep in activity feed for performance
 
 
 class BuildPage(ScrollArea):
@@ -292,7 +293,7 @@ class BuildPage(ScrollArea):
         
         # Live indicator
         self.live_indicator = QLabel()
-        self.live_indicator.setText("🔴 LIVE")
+        self.live_indicator.setText("● LIVE")
         self.live_indicator.setStyleSheet(f"""
             QLabel {{
                 color: {COLORS['error']};
@@ -583,8 +584,8 @@ class BuildPage(ScrollArea):
         self.activity_log_layout.insertWidget(count - 1, entry_widget)
         self.log_entries.append(entry_widget)
         
-        # Limit to last 50 entries for performance
-        if len(self.log_entries) > 50:
+        # Limit to MAX_ACTIVITY_LOG_ENTRIES for performance
+        if len(self.log_entries) > MAX_ACTIVITY_LOG_ENTRIES:
             old_entry = self.log_entries.pop(0)
             old_entry.deleteLater()
     
@@ -658,7 +659,7 @@ class BuildPage(ScrollArea):
         self.build_log.clear()
         
         # Add initial log entry to activity feed
-        self.add_log_entry("🚀 Build process initiated", "step", FluentIcon.PLAY)
+        self.add_log_entry("Build process initiated", "step", FluentIcon.PLAY)
         self.add_log_entry(f"Target macOS: {self.controller.macos_version_text}", "info")
         self.add_log_entry(f"SMBIOS Model: {self.controller.smbios_model_text}", "info")
         if self.controller.needs_oclp:
@@ -767,7 +768,7 @@ class BuildPage(ScrollArea):
             self.current_phase_label.setText("Complete")
             
             # Add success log entries
-            self.add_log_entry("✅ Build completed successfully!", "success", FluentIcon.COMPLETED)
+            self.add_log_entry("Build completed successfully!", "success", FluentIcon.COMPLETED)
             self.add_log_entry("EFI folder is ready for installation", "success")
             
             # Show success card
@@ -776,7 +777,7 @@ class BuildPage(ScrollArea):
             # Show post-build instructions if we have requirements
             if bios_requirements is not None:
                 self.show_post_build_instructions(bios_requirements)
-                self.add_log_entry("⚠️ Please review post-build instructions", "warning", FluentIcon.IMPORTANT)
+                self.add_log_entry("Please review post-build instructions", "warning", FluentIcon.IMPORTANT)
             
             # Reset build button
             self.build_btn.setText("Build OpenCore EFI")
@@ -812,7 +813,7 @@ class BuildPage(ScrollArea):
             self.current_phase_label.setText("Failed")
             
             # Add error log entry
-            self.add_log_entry("❌ Build failed - check details in log", "error", FluentIcon.CLOSE)
+            self.add_log_entry("Build failed - check details in log", "error", FluentIcon.CLOSE)
             
             # Reset build button
             self.build_btn.setText("Retry Build")
