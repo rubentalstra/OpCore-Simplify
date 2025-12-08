@@ -23,7 +23,7 @@ from .styles import COLORS, SPACING
 from .pages import HomePage, UploadPage, CompatibilityPage, ConfigurationPage, BuildPage, ConsolePage, SettingsPage, ConfigEditorPage
 from .custom_dialogs import (
     show_input_dialog, show_choice_dialog, show_question_dialog, show_info_dialog,
-    show_before_using_efi_dialog, show_wifi_network_count_dialog, show_codec_layout_dialog
+    show_wifi_network_count_dialog, show_codec_layout_dialog
 )
 
 # Import from Scripts package

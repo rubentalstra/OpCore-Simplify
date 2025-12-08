@@ -2,6 +2,7 @@
 Step 4: Build EFI - qfluentwidgets version with enhanced UI/UX
 """
 
+import platform
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
 from PyQt6.QtCore import Qt
 from qfluentwidgets import (
@@ -340,8 +341,6 @@ class BuildPage(ScrollArea):
 
     def show_post_build_instructions(self, bios_requirements):
         """Display post-build instructions card with BIOS and USB mapping info"""
-        import platform
-        
         # Clear existing content
         while self.instructions_after_content_layout.count():
             item = self.instructions_after_content_layout.takeAt(0)
@@ -421,9 +420,13 @@ class BuildPage(ScrollArea):
             self.controller.log_message(LOG_SEPARATOR, to_console=False, to_build_log=True)
             
             # Show success notification
+            success_message = 'Your OpenCore EFI has been built successfully!'
+            if bios_requirements is not None:
+                success_message += ' Review the important instructions below.'
+            
             InfoBar.success(
                 title='Build Complete',
-                content='Your OpenCore EFI has been built successfully! Review the instructions below.',
+                content=success_message,
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP_RIGHT,
