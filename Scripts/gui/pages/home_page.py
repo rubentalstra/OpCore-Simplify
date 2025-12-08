@@ -96,7 +96,7 @@ class HomePage(QWidget):
         note_text = BodyLabel(
             "The long awaited version 3.0.0 of OpenCore Legacy Patcher is here, bringing initial "
             "support for macOS Tahoe 26 to the community!\n\n"
-            "🚨 Please Note:\n"
+            "⚠ Please Note:\n"
             "• Only OpenCore-Patcher 3.0.0 from the lzhoang2801/OpenCore-Legacy-Patcher repository "
             "provides support for macOS Tahoe 26 with early patches.\n"
             "• Official Dortania releases or older patches will NOT work with macOS Tahoe 26."
