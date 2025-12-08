@@ -24,6 +24,7 @@ from ..ui_utils import build_icon_label, create_step_indicator
 LOG_SEPARATOR = "═" * 60
 DEFAULT_LOG_TEXT = "Build log will appear here..."
 MAX_ACTIVITY_LOG_ENTRIES = 50  # Maximum number of entries to keep in activity feed for performance
+MAX_PASSWORD_DISPLAY_LENGTH = 12  # Maximum length of password to display before truncating
 
 
 class BuildPage(ScrollArea):
@@ -59,6 +60,9 @@ class BuildPage(ScrollArea):
         self.kext_phase_card = None
         self.config_phase_card = None
         self.cleanup_phase_card = None
+        
+        # Collection of all phase cards for easy iteration
+        self.all_phase_cards = []
         
         self.setup_ui()
 
@@ -397,6 +401,15 @@ class BuildPage(ScrollArea):
             "Removing unused drivers, resources, and tools"
         )
         layout.addWidget(self.cleanup_phase_card)
+        
+        # Store all phase cards for easy iteration
+        self.all_phase_cards = [
+            self.gathering_phase_card,
+            self.acpi_phase_card,
+            self.kext_phase_card,
+            self.config_phase_card,
+            self.cleanup_phase_card
+        ]
 
         # Classic Build Log Card (collapsible, initially hidden)
         self.classic_log_card = CardWidget(self.scrollWidget)
@@ -805,7 +818,7 @@ class BuildPage(ScrollArea):
             self.wifi_table.setItem(row, 0, ssid_item)
             
             # Password (masked)
-            masked_password = "•" * min(len(password), 12) if password else "(Open Network)"
+            masked_password = "•" * min(len(password), MAX_PASSWORD_DISPLAY_LENGTH) if password else "(Open Network)"
             password_item = QTableWidgetItem(masked_password)
             password_item.setFlags(password_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.wifi_table.setItem(row, 1, password_item)
@@ -1017,8 +1030,7 @@ class BuildPage(ScrollArea):
         self.kext_install_widgets.clear()
         self.acpi_patch_widgets.clear()
         
-        for phase_card in [self.gathering_phase_card, self.acpi_phase_card, 
-                           self.kext_phase_card, self.config_phase_card, self.cleanup_phase_card]:
+        for phase_card in self.all_phase_cards:
             if phase_card:
                 phase_card.setVisible(False)
                 self.update_phase_status(phase_card, "Pending", COLORS['text_tertiary'])

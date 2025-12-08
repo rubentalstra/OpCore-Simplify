@@ -5,9 +5,10 @@ import platform
 import re
 import sys
 import threading
+import functools
 from typing import Optional
 
-from PyQt6.QtCore import Qt, pyqtSignal, QObject
+from PyQt6.QtCore import Qt, pyqtSignal, QObject, QTimer
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QFileDialog
 from qfluentwidgets import (
@@ -508,9 +509,10 @@ class OpCoreGUI(FluentWindow):
                         if ".kext" in line and ("install" in line.lower() or "add" in line.lower()):
                             if hasattr(self.buildPage, 'kext_phase_card'):
                                 self.buildPage.kext_phase_card.setVisible(True)
-                                # Extract kext name
+                                # Extract kext name using os.path.basename for robustness
                                 if ".kext" in line:
-                                    kext_name = line.split(".kext")[0].split("/")[-1].split("\\")[-1]
+                                    kext_part = line.split(".kext")[0]
+                                    kext_name = os.path.basename(kext_part)
                                     if kext_name:
                                         self.buildPage.add_kext_item(kext_name)
                         
@@ -975,7 +977,7 @@ class OpCoreGUI(FluentWindow):
             if status == 'complete':
                 self.progress_label.setText(
                     "✓ All files gathered successfully! Starting build...")
-                self.progress_label.setStyleSheet(f"color: {COLORS['success']};") if hasattr(self, 'COLORS') else None
+                self.progress_label.setStyleSheet(f"color: {COLORS['success']};")
             elif status == 'downloading':
                 self.progress_label.setText(
                     f"⬇ Downloading ({current}/{total}): {product_name}")
@@ -1080,7 +1082,7 @@ class OpCoreGUI(FluentWindow):
         if self.progress_label:
             if done:
                 self.progress_label.setText(f"✓ {title} complete!")
-                self.progress_label.setStyleSheet(f"color: {COLORS['success']};") if hasattr(self, 'COLORS') else None
+                self.progress_label.setStyleSheet(f"color: {COLORS['success']};")
             else:
                 step_text = steps[current_step_index] if current_step_index < len(
                     steps) else "Processing"
@@ -1141,10 +1143,7 @@ class OpCoreGUI(FluentWindow):
         if threading.current_thread() == threading.main_thread():
             self.visualize_wifi_profiles(profiles)
         else:
-            # Use Qt's invokeMethod or a signal to call on main thread
-            # For now, use a simple approach
-            import functools
-            from PyQt6.QtCore import QTimer
+            # Use Qt's QTimer to call on main thread
             QTimer.singleShot(0, functools.partial(self.visualize_wifi_profiles, profiles))
     
     def visualize_wifi_profiles(self, profiles):
