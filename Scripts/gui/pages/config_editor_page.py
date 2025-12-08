@@ -450,6 +450,7 @@ class ConfigEditorPage(QWidget):
         previous_state = self.undo_stack.pop()
         self.plist_data = previous_state
         self.tree.populate_tree(self.plist_data)
+        self.tree.expandAll()  # Expand all items after undo
         
         # Update button states
         self.undo_action.setEnabled(len(self.undo_stack) > 0)
@@ -478,6 +479,7 @@ class ConfigEditorPage(QWidget):
         redo_state = self.redo_stack.pop()
         self.plist_data = redo_state
         self.tree.populate_tree(self.plist_data)
+        self.tree.expandAll()  # Expand all items after redo
         
         # Update button states
         self.undo_action.setEnabled(True)
@@ -519,6 +521,8 @@ class ConfigEditorPage(QWidget):
         
         # CommandBar with primary actions
         self.command_bar = CommandBar(self)
+        # Show text beside icons for better clarity
+        self.command_bar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         
         # File operations
         self.load_action = Action(FluentIcon.FOLDER, "Load")
@@ -685,6 +689,7 @@ class ConfigEditorPage(QWidget):
             
             self.current_file = file_path
             self.tree.populate_tree(self.plist_data)
+            self.tree.expandAll()  # Expand all tree items on load
             self.file_label.setText(f"Loaded: {os.path.basename(file_path)}")
             
             # Clear undo/redo stacks on new file load
@@ -857,6 +862,7 @@ class ConfigEditorPage(QWidget):
             
             # Update tree
             self.tree.populate_tree(tree_data)
+            self.tree.expandAll()  # Expand all items after snapshot
             self.plist_data = tree_data
             
             # Save state for undo

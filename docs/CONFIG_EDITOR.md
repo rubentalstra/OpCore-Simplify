@@ -6,6 +6,7 @@ A powerful TreeView-based editor for OpenCore config.plist files with OC Snapsho
 
 ### 1. Interactive TreeView Editor
 - **Fluent Design TreeView**: Modern hierarchical display with smooth animations and Fluent Design styling
+- **Auto-Expand**: Tree fully expands on file load for quick overview
 - **Type-aware Editing**: Edit values with appropriate controls:
   - Boolean: Checkbox
   - Number: Spin box with proper range
@@ -17,7 +18,7 @@ A powerful TreeView-based editor for OpenCore config.plist files with OC Snapsho
 - **Fluent Context Menus**: Right-click to add/remove array items and dictionary keys with modern RoundMenu
 - **Drag-and-Drop**: Reorder items within arrays by dragging
 - **Undo/Redo**: Full undo/redo support with 50-level history
-- **CommandBar**: Modern command bar with all major operations accessible in one place
+- **CommandBar**: Modern command bar with text labels and icons for all major operations
 
 ### 2. OC Snapshot
 Automatically scan your OpenCore EFI folder and update config.plist with discovered files:
