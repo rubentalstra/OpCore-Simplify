@@ -191,6 +191,9 @@ The editor preserves plist formatting and uses OrderedDict to maintain key order
 ### Kext Database
 Uses the comprehensive kext database from the OpenCore Simplify project, containing 83+ kexts with full dependency information.
 
+### QPainter Conflict Resolution
+To avoid QPainter warnings and ensure smooth operation, all tree manipulations after dialog operations are deferred using `QTimer.singleShot(0, ...)`. This ensures Qt completes dialog close animations and paint events before any tree modifications occur.
+
 ## Troubleshooting
 
 **Q: OC Snapshot doesn't find my files**
