@@ -13,6 +13,8 @@ A powerful TreeView-based editor for OpenCore config.plist files with OC Snapsho
   - Data: Hexadecimal editor
 - **Double-click to Edit**: Quick and intuitive editing workflow
 - **Real-time Updates**: Changes are immediately reflected in the tree
+- **Search Functionality**: Quickly find keys in your configuration
+- **Add/Remove Array Items**: Right-click on arrays to add or remove items
 
 ### 2. OC Snapshot
 Automatically scan your OpenCore EFI folder and update config.plist with discovered files:
@@ -139,6 +141,8 @@ You can manually edit values in the tree:
 
 ## Tips
 
+- **Search**: Use the search box to quickly find keys in your configuration
+- **Right-click Arrays**: Right-click on array items to add or remove entries
 - **Path Length**: Keep your file and folder names short to avoid exceeding the 128 character limit
 - **Kext Order**: The order in the tree matters for kexts with dependencies
 - **Clean Snapshot**: Use clean snapshot when reorganizing your EFI folder structure
@@ -146,10 +150,9 @@ You can manually edit values in the tree:
 
 ## Limitations
 
-- Cannot add/remove dictionary keys or array items (planned for future release)
-- Cannot reorder entries in the tree (use manual editing for now)
+- Cannot add/remove dictionary keys (only array items supported)
+- Cannot reorder entries in the tree via drag-and-drop (planned for future release)
 - Kext dependency checking covers common kexts only
-- OpenCore version detection requires snapshot.plist (included)
 
 ## Technical Details
 
@@ -182,13 +185,20 @@ The editor preserves plist formatting and uses OrderedDict to maintain key order
 - Dictionary and Array containers cannot be edited directly
 - Edit their child values instead
 
+## Recent Enhancements
+
+**Version 2.0 Updates:**
+- ✅ Search/filter in tree - Use the search box to quickly find keys
+- ✅ Add/remove array items - Right-click arrays to add or remove entries
+- ✅ Code duplication reduced - Now uses shared utils for file I/O
+- ✅ Removed unused dependencies - snapshot.plist no longer required
+
 ## Future Enhancements
 
 Planned features for future releases:
-- Add/remove dictionary keys and array items
+- Add/remove dictionary keys
 - Drag-and-drop reordering in tree
 - Expanded kext dependency database
 - OpenCore version-specific validation
 - Undo/redo functionality
-- Search/filter in tree
 - Export validation reports

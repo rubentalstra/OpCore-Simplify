@@ -9,14 +9,15 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog,
     QTreeWidget, QTreeWidgetItem, QLineEdit, QDialog,
     QDialogButtonBox, QLabel, QCheckBox, QComboBox, QSpinBox,
-    QTextEdit, QMessageBox
+    QTextEdit, QMessageBox, QMenu, QInputDialog, QTreeWidgetItemIterator
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QAction
 from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel, CardWidget,
     StrongBodyLabel, PrimaryPushButton, FluentIcon,
     InfoBar, InfoBarPosition, MessageBox, ComboBox as FluentComboBox,
-    ToolButton
+    ToolButton, SearchLineEdit
 )
 
 from ..styles import COLORS, SPACING
@@ -33,6 +34,85 @@ class PlistTreeWidget(QTreeWidget):
         self.setColumnWidth(2, 400)
         self.setAlternatingRowColors(True)
         self.itemDoubleClicked.connect(self.edit_item)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_context_menu)
+        
+    def show_context_menu(self, position):
+        """Show context menu for tree items"""
+        item = self.itemAt(position)
+        if not item:
+            return
+        
+        menu = QMenu(self)
+        item_type = item.text(1)
+        
+        # Add actions based on item type
+        if item_type == "Array":
+            add_action = QAction("Add Item", self)
+            add_action.triggered.connect(lambda: self.add_array_item(item))
+            menu.addAction(add_action)
+        
+        if item_type not in ("Dictionary", "Array") and item.parent():
+            parent_type = item.parent().text(1)
+            if parent_type == "Array":
+                remove_action = QAction("Remove Item", self)
+                remove_action.triggered.connect(lambda: self.remove_array_item(item))
+                menu.addAction(remove_action)
+        
+        if menu.actions():
+            menu.exec(self.viewport().mapToGlobal(position))
+    
+    def add_array_item(self, array_item):
+        """Add a new item to an array"""
+        # Create a dialog to select item type
+        items = ["String", "Number", "Boolean", "Dictionary", "Array"]
+        item_type, ok = QInputDialog.getItem(
+            self, "Add Item", "Select item type:", items, 0, False
+        )
+        
+        if not ok:
+            return
+        
+        # Create new item
+        index = array_item.childCount()
+        new_item = QTreeWidgetItem(array_item)
+        new_item.setText(0, f"Item {index}")
+        
+        # Set default value based on type
+        if item_type == "String":
+            new_item.setText(1, "String")
+            new_item.setText(2, "")
+            new_item.setData(2, Qt.ItemDataRole.UserRole, "")
+        elif item_type == "Number":
+            new_item.setText(1, "Number")
+            new_item.setText(2, "0")
+            new_item.setData(2, Qt.ItemDataRole.UserRole, 0)
+        elif item_type == "Boolean":
+            new_item.setText(1, "Boolean")
+            new_item.setText(2, "false")
+            new_item.setData(2, Qt.ItemDataRole.UserRole, False)
+        elif item_type == "Dictionary":
+            new_item.setText(1, "Dictionary")
+            new_item.setText(2, "0 items")
+            new_item.setData(2, Qt.ItemDataRole.UserRole, OrderedDict())
+        elif item_type == "Array":
+            new_item.setText(1, "Array")
+            new_item.setText(2, "0 items")
+            new_item.setData(2, Qt.ItemDataRole.UserRole, [])
+        
+        array_item.setExpanded(True)
+    
+    def remove_array_item(self, item):
+        """Remove an item from an array"""
+        parent = item.parent()
+        if parent:
+            index = parent.indexOfChild(item)
+            parent.takeChild(index)
+            
+            # Renumber remaining items
+            for i in range(parent.childCount()):
+                child = parent.child(i)
+                child.setText(0, f"Item {i}")
         
     def populate_tree(self, data, parent=None):
         """Populate tree with plist data"""
@@ -223,9 +303,7 @@ class ConfigEditorPage(QWidget):
         self.controller = parent
         self.current_file = None
         self.plist_data = None
-        self.snapshot_data = None
         self.setup_ui()
-        self.load_snapshot_data()
         
     def setup_ui(self):
         """Setup the config editor page UI"""
@@ -301,10 +379,23 @@ class ConfigEditorPage(QWidget):
         tree_layout.setContentsMargins(SPACING['large'], SPACING['large'],
                                       SPACING['large'], SPACING['large'])
         
+        # Header with search
+        header_layout = QHBoxLayout()
         tree_title = StrongBodyLabel("Configuration Tree")
-        tree_layout.addWidget(tree_title)
+        header_layout.addWidget(tree_title)
         
-        help_label = BodyLabel("Double-click values to edit • OC Snapshot scans your OC folder and updates ACPI/Kexts/Drivers/Tools")
+        header_layout.addStretch()
+        
+        # Search box
+        self.search_box = SearchLineEdit()
+        self.search_box.setPlaceholderText("Search keys...")
+        self.search_box.setFixedWidth(250)
+        self.search_box.textChanged.connect(self.filter_tree)
+        header_layout.addWidget(self.search_box)
+        
+        tree_layout.addLayout(header_layout)
+        
+        help_label = BodyLabel("Double-click values to edit • Right-click arrays to add/remove items • OC Snapshot syncs files")
         help_label.setStyleSheet(f"color: {COLORS['text_tertiary']}; font-size: 12px;")
         tree_layout.addWidget(help_label)
         
@@ -315,37 +406,49 @@ class ConfigEditorPage(QWidget):
         tree_layout.addWidget(self.tree)
         
         layout.addWidget(tree_card, 1)
+    
+    def filter_tree(self, text):
+        """Filter tree items based on search text"""
+        if not text:
+            # Show all items
+            iterator = QTreeWidgetItemIterator(self.tree)
+            while iterator.value():
+                item = iterator.value()
+                item.setHidden(False)
+                iterator += 1
+            return
         
-    def load_snapshot_data(self):
-        """Load snapshot.plist data for OC version detection"""
-        try:
-            # Copy snapshot.plist from ProperTree if not exists
-            snapshot_path = os.path.join(
-                os.path.dirname(__file__), 
-                "..", "..", "snapshot.plist"
-            )
-            
-            if not os.path.exists(snapshot_path):
-                # Try to find it in the current directory structure
-                possible_paths = [
-                    os.path.join(os.path.dirname(__file__), "snapshot.plist"),
-                    os.path.join(os.path.dirname(__file__), "..", "snapshot.plist"),
-                ]
+        text = text.lower()
+        iterator = QTreeWidgetItemIterator(self.tree)
+        
+        # First pass: hide all items
+        while iterator.value():
+            item = iterator.value()
+            item.setHidden(True)
+            iterator += 1
+        
+        # Second pass: show matching items and their parents
+        iterator = QTreeWidgetItemIterator(self.tree)
+        while iterator.value():
+            item = iterator.value()
+            if text in item.text(0).lower() or text in item.text(2).lower():
+                # Show this item and all its parents
+                current = item
+                while current:
+                    current.setHidden(False)
+                    current = current.parent()
                 
-                for path in possible_paths:
-                    if os.path.exists(path):
-                        snapshot_path = path
-                        break
-            
-            if os.path.exists(snapshot_path):
-                with open(snapshot_path, 'rb') as f:
-                    self.snapshot_data = plistlib.load(f)
-            else:
-                self.snapshot_data = None
-                print("Warning: snapshot.plist not found. OC version detection will be limited.")
-        except Exception as e:
-            print(f"Error loading snapshot.plist: {e}")
-            self.snapshot_data = None
+                # Show all children
+                self._show_all_children(item)
+            iterator += 1
+    
+    def _show_all_children(self, item):
+        """Recursively show all children of an item"""
+        for i in range(item.childCount()):
+            child = item.child(i)
+            child.setHidden(False)
+            self._show_all_children(child)
+        
     
     def load_config(self):
         """Load a config.plist file"""
@@ -360,8 +463,11 @@ class ConfigEditorPage(QWidget):
             return
             
         try:
-            with open(file_path, 'rb') as f:
-                self.plist_data = plistlib.load(f)
+            # Use utils.read_file for consistent file handling
+            self.plist_data = self.controller.ocpe.u.read_file(file_path)
+            
+            if self.plist_data is None:
+                raise Exception("Failed to read file")
             
             self.current_file = file_path
             self.tree.populate_tree(self.plist_data)
@@ -401,9 +507,8 @@ class ConfigEditorPage(QWidget):
             # Get data from tree
             data = self.tree.get_tree_data()
             
-            # Save to file
-            with open(self.current_file, 'wb') as f:
-                plistlib.dump(data, f, sort_keys=False)
+            # Use utils.write_file for consistent file handling
+            self.controller.ocpe.u.write_file(self.current_file, data)
             
             InfoBar.success(
                 title='Saved',
