@@ -128,7 +128,6 @@ def create_step_indicator(step_number: int, total_steps: int = 4, color: str = "
     Returns:
         BodyLabel: Configured step indicator label
     """
-    from qfluentwidgets import BodyLabel
     label = BodyLabel(f"STEP {step_number} OF {total_steps}")
     label.setStyleSheet(f"color: {color}; font-weight: bold;")
     return label

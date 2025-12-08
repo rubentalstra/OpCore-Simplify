@@ -55,33 +55,6 @@ class CompatibilityPage(ScrollArea):
         # Step indicator
         self.expandLayout.addWidget(create_step_indicator(2))
 
-    def setup_ui(self):
-        """Setup the compatibility page UI"""
-        self.resize(1000, 800)
-        self.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setWidget(self.scrollWidget)
-        self.setWidgetResizable(True)
-
-        # Enable transparent background for proper styling
-        self.enableTransparentBackground()
-
-        # Initialize layout for compatibility cards
-        self.__initLayout()
-
-    def __initLayout(self):
-        """Initialize the expand layout with compatibility cards"""
-        # Set layout spacing and margins
-        self.expandLayout.setSpacing(SPACING['large'])
-        self.expandLayout.setContentsMargins(
-            SPACING['xxlarge'], SPACING['xlarge'], SPACING['xxlarge'], SPACING['xlarge'])
-
-        # Step indicator
-        step_label = BodyLabel("STEP 2 OF 4")
-        step_label.setStyleSheet(
-            f"color: {COLORS['primary']}; font-weight: bold;")
-        self.expandLayout.addWidget(step_label)
-
         # Header section with title and description
         header_container = QWidget()
         header_layout = QHBoxLayout(header_container)
@@ -108,6 +81,7 @@ class CompatibilityPage(ScrollArea):
         support_layout.setContentsMargins(0, 0, 0, 0)
         support_layout.setSpacing(SPACING['tiny'])
 
+        from qfluentwidgets import StrongBodyLabel
         support_title = StrongBodyLabel("macOS Support Range")
         support_title.setStyleSheet(
             f"color: {COLORS['primary']}; font-size: 13px;")
