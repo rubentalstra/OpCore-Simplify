@@ -2,7 +2,6 @@
 Step 1: Upload hardware report and ACPI tables.
 """
 
-import os
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 from PyQt6.QtCore import Qt
 from qfluentwidgets import (
@@ -59,7 +58,8 @@ class UploadPage(QWidget):
         self.select_btn.clicked.connect(self.select_report)
         upload_layout.addWidget(self.select_btn)
 
-        # Export button (Windows only)
+        # Export button (Windows only) - import os only when needed
+        import os
         if os.name == 'nt':
             self.export_btn = PushButton(
                 FluentIcon.DOWNLOAD, "Export Hardware Report")

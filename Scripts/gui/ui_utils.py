@@ -3,13 +3,17 @@ Common UI utility functions and helper methods for OpCore Simplify GUI.
 This module provides reusable UI components and patterns used across pages.
 """
 
-from typing import Optional, Tuple, Any
+from typing import Optional, Tuple, TYPE_CHECKING
 from PyQt6.QtWidgets import QWidget, QLabel
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 from qfluentwidgets import FluentIcon, BodyLabel
 
 from .styles import SPACING, COLORS
+
+# Import types only for type checking to avoid circular imports
+if TYPE_CHECKING:
+    from qfluentwidgets import GroupHeaderCardWidget, CardGroupWidget
 
 
 def build_icon_label(icon: FluentIcon, color: str, size: int = 32) -> QLabel:
@@ -86,13 +90,13 @@ def get_compatibility_icon(compat_tuple: Optional[Tuple[Optional[str], Optional[
 
 
 def add_group_with_indent(
-    card: Any,  # GroupHeaderCardWidget - using Any to avoid circular import
+    card: 'GroupHeaderCardWidget',
     icon: FluentIcon, 
     title: str, 
     content: str, 
     widget: Optional[QWidget] = None, 
     indent_level: int = 0
-) -> Any:  # Returns CardGroupWidget
+) -> 'CardGroupWidget':
     """
     Add a group to a GroupHeaderCardWidget with optional indentation.
     This is a common pattern used across multiple pages.
