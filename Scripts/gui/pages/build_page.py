@@ -234,6 +234,52 @@ class BuildPage(ScrollArea):
         self.success_card.setVisible(False)
         layout.addWidget(self.success_card)
 
+        # Post-build instructions card (initially hidden)
+        self.instructions_after_build_card = CardWidget()
+        self.instructions_after_build_card.setStyleSheet(f"""
+            CardWidget {{
+                background-color: {COLORS['warning_bg']};
+                border: 1px solid rgba(245, 124, 0, 0.25);
+                border-radius: {RADIUS['card']}px;
+            }}
+        """)
+        instructions_after_layout = QVBoxLayout(self.instructions_after_build_card)
+        instructions_after_layout.setContentsMargins(SPACING['large'], SPACING['large'],
+                                                     SPACING['large'], SPACING['large'])
+        instructions_after_layout.setSpacing(SPACING['medium'])
+
+        # Header with icon
+        instructions_after_header = QHBoxLayout()
+        instructions_after_header.setSpacing(SPACING['large'])
+        
+        warning_icon = build_icon_label(FluentIcon.MEGAPHONE, COLORS['warning_text'], size=40)
+        instructions_after_header.addWidget(warning_icon)
+        
+        instructions_after_text_layout = QVBoxLayout()
+        instructions_after_text_layout.setSpacing(SPACING['tiny'])
+        
+        instructions_after_title = StrongBodyLabel("Important: Before Using Your EFI")
+        instructions_after_title.setStyleSheet(f"color: {COLORS['warning_text']}; font-size: 16px;")
+        instructions_after_text_layout.addWidget(instructions_after_title)
+        
+        instructions_after_subtitle = BodyLabel("Please complete these steps before using the built EFI")
+        instructions_after_subtitle.setStyleSheet(f"color: {COLORS['text_secondary']};")
+        instructions_after_text_layout.addWidget(instructions_after_subtitle)
+        
+        instructions_after_header.addLayout(instructions_after_text_layout)
+        instructions_after_header.addStretch()
+        instructions_after_layout.addLayout(instructions_after_header)
+
+        # Content area for requirements (will be populated dynamically)
+        self.instructions_after_content = QWidget()
+        self.instructions_after_content_layout = QVBoxLayout(self.instructions_after_content)
+        self.instructions_after_content_layout.setContentsMargins(0, SPACING['small'], 0, 0)
+        self.instructions_after_content_layout.setSpacing(SPACING['medium'])
+        instructions_after_layout.addWidget(self.instructions_after_content)
+        
+        self.instructions_after_build_card.setVisible(False)
+        layout.addWidget(self.instructions_after_build_card)
+
         layout.addStretch()
 
     def start_build(self):
@@ -292,7 +338,60 @@ class BuildPage(ScrollArea):
             pixmap = icon.icon(color=color).pixmap(20, 20)
             self.status_icon_label.setPixmap(pixmap)
 
-    def on_build_complete(self, success=True):
+    def show_post_build_instructions(self, bios_requirements):
+        """Display post-build instructions card with BIOS and USB mapping info"""
+        import platform
+        
+        # Clear existing content
+        while self.instructions_after_content_layout.count():
+            item = self.instructions_after_content_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
+        # BIOS/UEFI Settings section
+        if bios_requirements:
+            bios_header = StrongBodyLabel("1. BIOS/UEFI Settings Required:")
+            bios_header.setStyleSheet(f"color: {COLORS['warning_text']}; font-size: 14px;")
+            self.instructions_after_content_layout.addWidget(bios_header)
+            
+            bios_text = "\n".join([f"  • {req}" for req in bios_requirements])
+            bios_label = BodyLabel(bios_text)
+            bios_label.setWordWrap(True)
+            bios_label.setStyleSheet(f"color: {COLORS['text_secondary']}; margin-left: 10px;")
+            self.instructions_after_content_layout.addWidget(bios_label)
+            
+            self.instructions_after_content_layout.addSpacing(SPACING['medium'])
+        
+        # USB Mapping section
+        usb_header = StrongBodyLabel(f"{'2' if bios_requirements else '1'}. USB Port Mapping:")
+        usb_header.setStyleSheet(f"color: {COLORS['warning_text']}; font-size: 14px;")
+        self.instructions_after_content_layout.addWidget(usb_header)
+        
+        # Determine path separator based on OS
+        path_sep = "\\" if platform.system() == "Windows" else "/"
+        kexts_path = f"EFI{path_sep}OC{path_sep}Kexts"
+        
+        usb_instructions = [
+            "Use USBToolBox tool to map USB ports",
+            f"Add created UTBMap.kext into the {kexts_path} folder",
+            f"Remove UTBDefault.kext from the {kexts_path} folder",
+            "Edit config.plist using ProperTree:",
+            "  - Open config.plist with ProperTree",
+            "  - Run OC Snapshot (Command/Ctrl + R)",
+            "  - Enable XhciPortLimit patch if you have more than 15 ports",
+            "  - Save the file"
+        ]
+        
+        usb_text = "\n".join([f"  • {inst}" for inst in usb_instructions])
+        usb_label = BodyLabel(usb_text)
+        usb_label.setWordWrap(True)
+        usb_label.setStyleSheet(f"color: {COLORS['text_secondary']}; margin-left: 10px;")
+        self.instructions_after_content_layout.addWidget(usb_label)
+        
+        # Show the card
+        self.instructions_after_build_card.setVisible(True)
+
+    def on_build_complete(self, success=True, bios_requirements=None):
         """Handle build completion with enhanced feedback"""
         self.build_in_progress = False
         self.build_successful = success
@@ -307,6 +406,10 @@ class BuildPage(ScrollArea):
             # Show success card
             self.success_card.setVisible(True)
             
+            # Show post-build instructions if we have requirements
+            if bios_requirements is not None:
+                self.show_post_build_instructions(bios_requirements)
+            
             # Reset build button
             self.build_btn.setText("Build OpenCore EFI")
             self.build_btn.setEnabled(True)
@@ -320,7 +423,7 @@ class BuildPage(ScrollArea):
             # Show success notification
             InfoBar.success(
                 title='Build Complete',
-                content='Your OpenCore EFI has been built successfully!',
+                content='Your OpenCore EFI has been built successfully! Review the instructions below.',
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP_RIGHT,

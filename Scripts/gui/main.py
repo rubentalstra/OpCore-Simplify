@@ -655,12 +655,19 @@ class OpCoreGUI(FluentWindow):
                 self.update_status_signal.emit(
                     "OpenCore EFI built successfully!", 'success')
 
-                # Notify build page of successful completion
-                if hasattr(self, 'buildPage') and hasattr(self.buildPage, 'on_build_complete'):
-                    QTimer.singleShot(0, lambda: self.buildPage.on_build_complete(True))
+                # Calculate BIOS requirements for display on build page
+                bios_requirements = self.ocpe.check_bios_requirements(
+                    self.hardware_report_data, self.customized_hardware)
 
-                # Show "Before Using EFI" dialog on main thread
-                QTimer.singleShot(0, self.show_before_using_efi_dialog)
+                # Notify build page of successful completion with requirements
+                if hasattr(self, 'buildPage') and hasattr(self.buildPage, 'on_build_complete'):
+                    QTimer.singleShot(0, lambda: self.buildPage.on_build_complete(True, bios_requirements))
+
+                # Auto-open folder if setting is enabled (no dialog needed)
+                from Scripts.settings import Settings
+                settings = Settings()
+                if settings.get_open_folder_after_build():
+                    QTimer.singleShot(100, lambda: self.ocpe.u.open_folder(self.ocpe.result_dir))
 
             except Exception as e:
                 self.update_status_signal.emit(
