@@ -433,7 +433,7 @@ class PlistTreeWidget(TreeWidget):
                     content=f"Array item '{item_name}' removed successfully",
                     orient=Qt.Orientation.Horizontal,
                     isClosable=True,
-                    position=InfoBarPosition.TOP,
+                    position=InfoBarPosition.TOP_RIGHT,
                     duration=2000,
                     parent=self.window()
                 )
