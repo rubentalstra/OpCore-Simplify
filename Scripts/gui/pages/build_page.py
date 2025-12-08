@@ -80,8 +80,12 @@ class BuildPage(ScrollArea):
         instructions_icon_label = build_icon_label(FluentIcon.INFO, COLORS['note_text'], size=24)
         instructions_card.headerLayout.insertWidget(0, instructions_icon_label)
         
-        # Instructions content
-        instructions_content = BodyLabel(
+        # Instructions content using addGroup
+        instructions_content = QWidget()
+        instructions_layout = QVBoxLayout(instructions_content)
+        instructions_layout.setContentsMargins(SPACING['medium'], SPACING['small'], SPACING['medium'], SPACING['medium'])
+        
+        instructions_text = BodyLabel(
             "The build process will:\n\n"
             "• Download the latest OpenCore bootloader and required kexts\n"
             "• Apply your customized ACPI patches and configurations\n"
@@ -89,9 +93,11 @@ class BuildPage(ScrollArea):
             "⏱️ This process typically takes 2-5 minutes depending on your internet connection.\n"
             "📊 Progress will be shown below with real-time status updates."
         )
-        instructions_content.setWordWrap(True)
-        instructions_content.setStyleSheet(f"color: {COLORS['text_secondary']}; line-height: 1.8; padding: {SPACING['medium']}px;")
-        instructions_card.addWidget(instructions_content)
+        instructions_text.setWordWrap(True)
+        instructions_text.setStyleSheet(f"color: {COLORS['text_secondary']}; line-height: 1.8;")
+        instructions_layout.addWidget(instructions_text)
+        
+        instructions_card.addGroup(FluentIcon.INFO, "Build Process", "What happens during the build", instructions_content)
         
         # Style the instructions card
         instructions_card.card.setStyleSheet(f"""
@@ -129,7 +135,7 @@ class BuildPage(ScrollArea):
         build_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         build_btn_layout.addWidget(build_hint)
         
-        build_control_card.addWidget(build_btn_container)
+        build_control_card.addGroup(FluentIcon.PLAY, "Start Build", "Click the button below to begin", build_btn_container)
 
         # Progress section (initially hidden)
         self.progress_container = QWidget()
@@ -162,7 +168,7 @@ class BuildPage(ScrollArea):
         self.controller.progress_label = self.progress_label
         self.progress_container.setVisible(False)
         
-        build_control_card.addWidget(self.progress_container)
+        build_control_card.addGroup(FluentIcon.SYNC, "Build Progress", "Current build status", self.progress_container)
         layout.addWidget(build_control_card)
 
         # Build log card using GroupHeaderCardWidget
@@ -174,15 +180,20 @@ class BuildPage(ScrollArea):
         log_icon_header = build_icon_label(FluentIcon.DOCUMENT, COLORS['primary'], size=24)
         log_card.headerLayout.insertWidget(0, log_icon_header)
         
-        # Log description
+        # Log description and content
+        log_content_widget = QWidget()
+        log_content_layout = QVBoxLayout(log_content_widget)
+        log_content_layout.setContentsMargins(0, 0, 0, 0)
+        log_content_layout.setSpacing(SPACING['small'])
+        
         log_description = BodyLabel("Detailed build process information and status updates")
-        log_description.setStyleSheet(f"color: {COLORS['text_secondary']}; padding: {SPACING['small']}px {SPACING['medium']}px;")
-        log_card.addWidget(log_description)
+        log_description.setStyleSheet(f"color: {COLORS['text_secondary']};")
+        log_content_layout.addWidget(log_description)
 
         # Build log text area with improved styling
         log_container = QWidget()
         log_container_layout = QVBoxLayout(log_container)
-        log_container_layout.setContentsMargins(SPACING['medium'], 0, SPACING['medium'], SPACING['medium'])
+        log_container_layout.setContentsMargins(0, SPACING['small'], 0, 0)
         
         self.build_log = TextEdit()
         self.build_log.setReadOnly(True)
@@ -202,7 +213,9 @@ class BuildPage(ScrollArea):
         self.controller.build_log = self.build_log
         log_container_layout.addWidget(self.build_log)
         
-        log_card.addWidget(log_container)
+        log_content_layout.addWidget(log_container)
+        
+        log_card.addGroup(FluentIcon.DOCUMENT, "Log Output", "Real-time build process logs", log_content_widget)
         layout.addWidget(log_card)
 
         # Success card using GroupHeaderCardWidget (initially hidden)
@@ -243,7 +256,7 @@ class BuildPage(ScrollArea):
         buttons_layout.addStretch()
         success_content_layout.addLayout(buttons_layout)
         
-        self.success_card.addWidget(success_content)
+        self.success_card.addGroup(FluentIcon.COMPLETED, "Success", "Your EFI is ready!", success_content)
         self.controller.open_result_btn = self.open_result_btn
         
         # Style the success card
@@ -285,7 +298,7 @@ class BuildPage(ScrollArea):
         self.instructions_after_content_layout.setSpacing(SPACING['medium'])
         instructions_after_container_layout.addWidget(self.instructions_after_content)
         
-        self.instructions_after_build_card.addWidget(instructions_after_container)
+        self.instructions_after_build_card.addGroup(FluentIcon.IMPORTANT, "Post-Build Steps", "Follow these steps before using your EFI", instructions_after_container)
         
         # Style the warning card
         self.instructions_after_build_card.card.setStyleSheet(f"""
