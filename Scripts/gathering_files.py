@@ -391,9 +391,18 @@ class gatheringFiles:
             print("")
             print("Please try again later or apply them manually.")
             print("")
-            # Only show "Press Enter to continue" prompt in CLI mode
-            if not self.utils.gui_callback:
+            
+            # Show error dialog in GUI mode, or prompt in CLI mode
+            if self.utils.gui_handler:
+                message = (
+                    f"Unable to download {patches_name} at this time from:\n"
+                    f"{patches_url}\n\n"
+                    "Please try again later or apply them manually."
+                )
+                self.utils.show_info_dialog('Download Failed', message)
+            elif not self.utils.gui_callback:
                 self.utils.request_input()
+                
             return []
         
     def _update_download_history(self, download_history, product_name, product_id, product_url, sha256_hash):
