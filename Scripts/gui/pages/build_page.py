@@ -282,7 +282,7 @@ class BuildPage(ScrollArea):
         self.instructions_after_content_layout.setSpacing(SPACING['medium'])
         instructions_after_container_layout.addWidget(self.instructions_after_content)
         
-        self.instructions_after_build_card.addGroup(FluentIcon.IMPORTANT, "Post-Build Steps", "Follow these steps before using your EFI", instructions_after_container)
+        self.instructions_after_build_card.addGroup(FluentIcon.INFO, "Post-Build Steps", "Follow these steps before using your EFI", instructions_after_container)
         
         self.instructions_after_build_card.setVisible(False)
         layout.addWidget(self.instructions_after_build_card)
