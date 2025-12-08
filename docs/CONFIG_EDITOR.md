@@ -17,7 +17,7 @@ A powerful TreeView-based editor for OpenCore config.plist files with OC Snapsho
 - **Double-click to Edit**: Quick and intuitive editing workflow with polished dialogs
 - **Real-time Updates**: Changes are immediately reflected in the tree
 - **Search Functionality**: Quickly find keys in your configuration
-- **Fluent Context Menus**: Right-click to add/remove array items and dictionary keys with modern RoundMenu
+- **Fluent Context Menus**: Right-click to add items/keys or remove any child item (including nested dictionaries and arrays) with modern RoundMenu
 - **Smart Key Management**: Duplicate key detection and validation in add key dialog
 - **Drag-and-Drop**: Reorder items within arrays by dragging
 - **Undo/Redo**: Full undo/redo support with 50-level history
@@ -160,7 +160,7 @@ You can manually edit values in the tree:
 ## Tips
 
 - **Search**: Use the search box to quickly find keys in your configuration
-- **Right-click Menus**: Right-click on arrays or dictionaries to add/remove items or keys
+- **Right-click Menus**: Right-click on arrays or dictionaries to add items/keys, or right-click on any child item (including nested dictionaries and arrays) to remove it
 - **Drag-and-Drop**: Drag items within arrays to reorder them
 - **Undo/Redo**: Use Ctrl+Z/Ctrl+Y or the toolbar buttons to undo/redo changes
 - **Path Length**: Keep your file and folder names short to avoid exceeding the 128 character limit

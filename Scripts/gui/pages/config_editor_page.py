@@ -254,7 +254,8 @@ class PlistTreeWidget(TreeWidget):
             menu.addAction(add_key_action)
         
         # Remove actions for items within arrays or dictionaries
-        if item_type not in ("Dictionary", "Array") and item.parent():
+        # Allow removing any item (including Dictionary and Array) if it has a parent
+        if item.parent():
             parent_type = item.parent().text(1)
             if parent_type == "Array":
                 remove_action = Action(FluentIcon.DELETE, "Remove Item")
