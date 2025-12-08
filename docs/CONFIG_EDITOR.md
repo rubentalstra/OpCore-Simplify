@@ -213,8 +213,8 @@ The editor preserves plist formatting and uses OrderedDict to maintain key order
 ### Kext Database
 Uses the comprehensive kext database from the OpenCore Simplify project, containing 83+ kexts with full dependency information.
 
-### QPainter Conflict Resolution
-To avoid QPainter warnings and ensure smooth operation, all tree manipulations after dialog operations are deferred using `QTimer.singleShot(0, ...)`. This ensures Qt completes dialog close animations and paint events before any tree modifications occur.
+### Dialog Handling
+All dialogs follow the standard Qt pattern using `dialog.exec()` which is a blocking call that automatically handles modal behavior and prevents QPainter conflicts. Dialog results are processed immediately after `exec()` returns, following the same pattern used throughout the application in `custom_dialogs.py`. This ensures proper event handling and eliminates the need for deferred operations.
 
 ## Troubleshooting
 

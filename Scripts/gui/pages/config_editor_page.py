@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog,
     QTreeWidgetItem, QLineEdit, QTreeWidgetItemIterator
 )
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt
 from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel, CardWidget,
     StrongBodyLabel, PrimaryPushButton, FluentIcon,
@@ -280,46 +280,42 @@ class PlistTreeWidget(TreeWidget):
         dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
         if dialog.exec():
             key_name, value_type = dialog.get_values()
-            # Defer tree manipulation to avoid QPainter conflicts
-            QTimer.singleShot(0, lambda: self._process_add_dict_key(dict_item, key_name, value_type))
-    
-    def _process_add_dict_key(self, dict_item, key_name, value_type):
-        """Process adding a dictionary key (called via QTimer to avoid paint conflicts)"""
-        # Create new item
-        new_item = QTreeWidgetItem(dict_item)
-        new_item.setText(0, key_name)
-        
-        # Set default value based on type
-        if value_type == "String":
-            new_item.setText(1, "String")
-            new_item.setText(2, "")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, "")
-        elif value_type == "Number":
-            new_item.setText(1, "Number")
-            new_item.setText(2, "0")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, 0)
-        elif value_type == "Boolean":
-            new_item.setText(1, "Boolean")
-            new_item.setText(2, "false")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, False)
-        elif value_type == "Dictionary":
-            new_item.setText(1, "Dictionary")
-            new_item.setText(2, "0 items")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, OrderedDict())
-        elif value_type == "Array":
-            new_item.setText(1, "Array")
-            new_item.setText(2, "0 items")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, [])
-        elif value_type == "Data":
-            new_item.setText(1, "Data")
-            new_item.setText(2, "")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, b"")
-        
-        dict_item.setExpanded(True)
-        
-        # Save state for undo
-        if self.editor_page:
-            self.editor_page.save_state()
+            
+            # Create new item
+            new_item = QTreeWidgetItem(dict_item)
+            new_item.setText(0, key_name)
+            
+            # Set default value based on type
+            if value_type == "String":
+                new_item.setText(1, "String")
+                new_item.setText(2, "")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, "")
+            elif value_type == "Number":
+                new_item.setText(1, "Number")
+                new_item.setText(2, "0")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, 0)
+            elif value_type == "Boolean":
+                new_item.setText(1, "Boolean")
+                new_item.setText(2, "false")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, False)
+            elif value_type == "Dictionary":
+                new_item.setText(1, "Dictionary")
+                new_item.setText(2, "0 items")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, OrderedDict())
+            elif value_type == "Array":
+                new_item.setText(1, "Array")
+                new_item.setText(2, "0 items")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, [])
+            elif value_type == "Data":
+                new_item.setText(1, "Data")
+                new_item.setText(2, "")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, b"")
+            
+            dict_item.setExpanded(True)
+            
+            # Save state for undo
+            if self.editor_page:
+                self.editor_page.save_state()
     
     def remove_dict_key(self, item):
         """Remove a key from a dictionary using Fluent Design confirmation"""
@@ -337,30 +333,25 @@ class PlistTreeWidget(TreeWidget):
         w.cancelButton.setText("Cancel")
         
         if w.exec():
-            # Defer tree manipulation to avoid QPainter conflicts
-            QTimer.singleShot(0, lambda: self._process_remove_dict_key(item, key_name))
-    
-    def _process_remove_dict_key(self, item, key_name):
-        """Process removing a dictionary key (called via QTimer to avoid paint conflicts)"""
-        parent = item.parent()
-        if parent:
-            index = parent.indexOfChild(item)
-            parent.takeChild(index)
-            
-            # Save state for undo
-            if self.editor_page:
-                self.editor_page.save_state()
+            parent = item.parent()
+            if parent:
+                index = parent.indexOfChild(item)
+                parent.takeChild(index)
                 
-            # Show success message
-            InfoBar.success(
-                title='Key Removed',
-                content=f"Key '{key_name}' removed successfully",
-                orient=Qt.Orientation.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP_RIGHT,
-                duration=2000,
-                parent=self.window()
-            )
+                # Save state for undo
+                if self.editor_page:
+                    self.editor_page.save_state()
+                    
+                # Show success message
+                InfoBar.success(
+                    title='Key Removed',
+                    content=f"Key '{key_name}' removed successfully",
+                    orient=Qt.Orientation.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP_RIGHT,
+                    duration=2000,
+                    parent=self.window()
+                )
     
     def add_array_item(self, array_item):
         """Add a new item to an array using Fluent Design dialog"""
@@ -370,51 +361,42 @@ class PlistTreeWidget(TreeWidget):
         dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
         if dialog.exec():
             item_type = dialog.get_value_type()
-            # Defer tree manipulation to avoid QPainter conflicts
-            QTimer.singleShot(0, lambda: self._process_add_array_item(array_item, item_type))
-    
-    def _process_add_array_item(self, array_item, item_type):
-        """Process adding an array item (called via QTimer to avoid paint conflicts)"""
-        # Create new item
-        index = array_item.childCount()
-        new_item = QTreeWidgetItem(array_item)
-        new_item.setText(0, f"Item {index}")
-        
-        # Set default value based on type
-        if item_type == "String":
-            new_item.setText(1, "String")
-            new_item.setText(2, "")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, "")
-        elif item_type == "Number":
-            new_item.setText(1, "Number")
-            new_item.setText(2, "0")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, 0)
-        elif item_type == "Boolean":
-            new_item.setText(1, "Boolean")
-            new_item.setText(2, "false")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, False)
-        elif item_type == "Dictionary":
-            new_item.setText(1, "Dictionary")
-            new_item.setText(2, "0 items")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, OrderedDict())
-        elif item_type == "Array":
-            new_item.setText(1, "Array")
-            new_item.setText(2, "0 items")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, [])
-        
-        array_item.setExpanded(True)
-        
-        # Save state for undo
-        if self.editor_page:
-            self.editor_page.save_state()
+            
+            # Create new item
+            index = array_item.childCount()
+            new_item = QTreeWidgetItem(array_item)
+            new_item.setText(0, f"Item {index}")
+            
+            # Set default value based on type
+            if item_type == "String":
+                new_item.setText(1, "String")
+                new_item.setText(2, "")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, "")
+            elif item_type == "Number":
+                new_item.setText(1, "Number")
+                new_item.setText(2, "0")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, 0)
+            elif item_type == "Boolean":
+                new_item.setText(1, "Boolean")
+                new_item.setText(2, "false")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, False)
+            elif item_type == "Dictionary":
+                new_item.setText(1, "Dictionary")
+                new_item.setText(2, "0 items")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, OrderedDict())
+            elif value_type == "Array":
+                new_item.setText(1, "Array")
+                new_item.setText(2, "0 items")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, [])
+            
+            array_item.setExpanded(True)
+            
+            # Save state for undo
+            if self.editor_page:
+                self.editor_page.save_state()
     
     def remove_array_item(self, item):
         """Remove an item from an array"""
-        # Defer tree manipulation to avoid QPainter conflicts
-        QTimer.singleShot(0, lambda: self._process_remove_array_item(item))
-    
-    def _process_remove_array_item(self, item):
-        """Process removing an array item (called via QTimer to avoid paint conflicts)"""
         parent = item.parent()
         if parent:
             index = parent.indexOfChild(item)
@@ -493,27 +475,17 @@ class PlistTreeWidget(TreeWidget):
         if item_type in ("Dictionary", "Array"):
             return
         
-        # Use QTimer to defer dialog display to avoid QPainter conflicts
-        QTimer.singleShot(0, lambda: self._show_edit_dialog(item, item_type, current_value))
-    
-    def _show_edit_dialog(self, item, item_type, current_value):
-        """Show the edit dialog (called via QTimer to avoid paint conflicts)"""
         # Parent to main window and make modal
         dialog = ValueEditDialog(self.window(), item_type, current_value)
         dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
         if dialog.exec():
             new_value = dialog.get_value()
-            # Defer tree manipulation to avoid QPainter conflicts
-            QTimer.singleShot(0, lambda: self._process_edit_value(item, new_value))
-    
-    def _process_edit_value(self, item, new_value):
-        """Process editing a value (called via QTimer to avoid paint conflicts)"""
-        item.setData(2, Qt.ItemDataRole.UserRole, new_value)
-        self._set_item_value(item, new_value)
-        
-        # Save state for undo
-        if self.editor_page:
-            self.editor_page.save_state()
+            item.setData(2, Qt.ItemDataRole.UserRole, new_value)
+            self._set_item_value(item, new_value)
+            
+            # Save state for undo
+            if self.editor_page:
+                self.editor_page.save_state()
     
     def get_tree_data(self):
         """Extract data from tree back to dictionary/list format"""
