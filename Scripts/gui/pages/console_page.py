@@ -29,8 +29,6 @@ from qfluentwidgets import (
     CommandBar,
     Action,
     RoundMenu,
-    SettingCardGroup,
-    SwitchSettingCard,
 )
 
 from ..styles import COLORS, SPACING, RADIUS
@@ -88,115 +86,87 @@ class ConsolePage(ScrollArea):
 
         layout.addWidget(header_container)
 
-        # Filter controls using SettingCardGroup (qfluentwidgets best practice)
-        filter_group = SettingCardGroup("Filter and Display Options", self.scrollWidget)
-        
-        # Level filter card
-        level_card = CardWidget()
-        level_layout = QHBoxLayout(level_card)
-        level_layout.setContentsMargins(SPACING['large'], SPACING['medium'], SPACING['large'], SPACING['medium'])
-        
-        level_label_container = QVBoxLayout()
-        level_label_container.setSpacing(SPACING['tiny'])
-        level_title = StrongBodyLabel("Log Level Filter")
-        level_desc = BodyLabel("Filter logs by severity level")
-        level_desc.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 12px;")
-        level_label_container.addWidget(level_title)
-        level_label_container.addWidget(level_desc)
-        
-        level_layout.addLayout(level_label_container)
-        level_layout.addStretch()
+        # Simple filter controls in a single clean card
+        filter_card = CardWidget()
+        filter_layout = QVBoxLayout(filter_card)
+        filter_layout.setContentsMargins(
+            SPACING['large'],
+            SPACING['large'],
+            SPACING['large'],
+            SPACING['large'],
+        )
+        filter_layout.setSpacing(SPACING['medium'])
+
+        # Filter row with level and search side by side
+        filter_row = QHBoxLayout()
+        filter_row.setSpacing(SPACING['medium'])
+
+        # Level filter
+        level_label = BodyLabel("Level:")
+        filter_row.addWidget(level_label)
         
         self.level_filter = ComboBox()
         self.level_filter.addItems(self.LEVELS)
         self.level_filter.currentTextChanged.connect(self._apply_filters)
         self.level_filter.setMinimumWidth(140)
-        level_layout.addWidget(self.level_filter)
-        
-        filter_group.addSettingCard(level_card)
-        
-        # Search filter card
-        search_card = CardWidget()
-        search_layout = QHBoxLayout(search_card)
-        search_layout.setContentsMargins(SPACING['large'], SPACING['medium'], SPACING['large'], SPACING['medium'])
-        
-        search_label_container = QVBoxLayout()
-        search_label_container.setSpacing(SPACING['tiny'])
-        search_title = StrongBodyLabel("Search Logs")
-        search_desc = BodyLabel("Search for specific text in log messages")
-        search_desc.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 12px;")
-        search_label_container.addWidget(search_title)
-        search_label_container.addWidget(search_desc)
-        
-        search_layout.addLayout(search_label_container)
-        search_layout.addStretch()
-        
+        filter_row.addWidget(self.level_filter)
+
+        # Search input
         self.search_input = LineEdit()
         self.search_input.setPlaceholderText("Search in logs...")
         self.search_input.setClearButtonEnabled(True)
         self.search_input.textChanged.connect(self._apply_filters)
-        self.search_input.setMinimumWidth(250)
-        search_layout.addWidget(self.search_input)
+        filter_row.addWidget(self.search_input, stretch=1)
+
+        filter_layout.addLayout(filter_row)
+
+        # Toggle switches row
+        toggle_row = QHBoxLayout()
+        toggle_row.setSpacing(SPACING['large'])
+
+        # Auto-scroll toggle
+        auto_scroll_container = QWidget()
+        auto_scroll_layout = QHBoxLayout(auto_scroll_container)
+        auto_scroll_layout.setContentsMargins(0, 0, 0, 0)
+        auto_scroll_layout.setSpacing(SPACING['small'])
         
-        filter_group.addSettingCard(search_card)
+        auto_scroll_label = BodyLabel("Auto-scroll")
+        auto_scroll_layout.addWidget(auto_scroll_label)
         
-        # Quick filter card
-        quick_filter_card = CardWidget()
-        quick_filter_layout = QHBoxLayout(quick_filter_card)
-        quick_filter_layout.setContentsMargins(SPACING['large'], SPACING['medium'], SPACING['large'], SPACING['medium'])
+        self.auto_scroll_switch = SwitchButton()
+        self.auto_scroll_switch.setChecked(True)
+        self.auto_scroll_switch.checkedChanged.connect(self._toggle_auto_scroll)
+        auto_scroll_layout.addWidget(self.auto_scroll_switch)
+        auto_scroll_layout.addStretch()
         
-        quick_label_container = QVBoxLayout()
-        quick_label_container.setSpacing(SPACING['tiny'])
-        quick_title = StrongBodyLabel("Quick Filters")
-        quick_desc = BodyLabel("Apply preset filters for common scenarios")
-        quick_desc.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 12px;")
-        quick_label_container.addWidget(quick_title)
-        quick_label_container.addWidget(quick_desc)
+        toggle_row.addWidget(auto_scroll_container)
+
+        # Word wrap toggle
+        wrap_container = QWidget()
+        wrap_layout = QHBoxLayout(wrap_container)
+        wrap_layout.setContentsMargins(0, 0, 0, 0)
+        wrap_layout.setSpacing(SPACING['small'])
         
-        quick_filter_layout.addLayout(quick_label_container)
-        quick_filter_layout.addStretch()
+        wrap_label = BodyLabel("Word Wrap")
+        wrap_layout.addWidget(wrap_label)
         
-        self.quick_filter_btn = PushButton(FluentIcon.FILTER, "Show Presets")
-        self.quick_filter_btn.clicked.connect(self._show_quick_filter_menu)
-        quick_filter_layout.addWidget(self.quick_filter_btn)
+        self.wrap_switch = SwitchButton()
+        self.wrap_switch.setChecked(True)
+        self.wrap_switch.checkedChanged.connect(self._toggle_wrap_mode)
+        wrap_layout.addWidget(self.wrap_switch)
+        wrap_layout.addStretch()
         
-        filter_group.addSettingCard(quick_filter_card)
-        
-        # Auto-scroll setting card
-        self.auto_scroll_card = SwitchSettingCard(
-            FluentIcon.DOWN,
-            "Auto-scroll",
-            "Automatically scroll to newest entries when new logs arrive",
-            parent=self.scrollWidget
-        )
-        self.auto_scroll_card.switchButton.setChecked(True)
-        self.auto_scroll_card.switchButton.checkedChanged.connect(self._toggle_auto_scroll)
-        filter_group.addSettingCard(self.auto_scroll_card)
-        
-        # Word wrap setting card
-        self.wrap_card = SwitchSettingCard(
-            FluentIcon.ALIGNMENT,
-            "Word Wrap",
-            "Wrap long lines for better readability",
-            parent=self.scrollWidget
-        )
-        self.wrap_card.switchButton.setChecked(True)
-        self.wrap_card.switchButton.checkedChanged.connect(self._toggle_wrap_mode)
-        filter_group.addSettingCard(self.wrap_card)
-        
-        layout.addWidget(filter_group)
-        
-        # Filter status info
-        status_container = QWidget()
-        status_layout = QHBoxLayout(status_container)
-        status_layout.setContentsMargins(SPACING['large'], SPACING['small'], SPACING['large'], SPACING['small'])
-        
+        toggle_row.addWidget(wrap_container)
+        toggle_row.addStretch()
+
+        filter_layout.addLayout(toggle_row)
+
+        # Filter status
         self.filter_status_label = BodyLabel("Showing all logs")
-        self.filter_status_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
-        status_layout.addWidget(self.filter_status_label)
-        status_layout.addStretch()
-        
-        layout.addWidget(status_container)
+        self.filter_status_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 12px;")
+        filter_layout.addWidget(self.filter_status_label)
+
+        layout.addWidget(filter_card)
 
         # Console output card
         console_card = CardWidget()
@@ -418,40 +388,6 @@ class ConsolePage(ScrollArea):
         self.level_filter.setCurrentText("All")
         self.search_input.clear()
         self.controller.update_status("All filters cleared", 'success')
-    
-    def _show_quick_filter_menu(self):
-        """Show quick filter menu with preset filters"""
-        menu = RoundMenu(parent=self.scrollWidget)
-        
-        # Show only errors
-        errors_action = Action(FluentIcon.CANCEL, "Show Only Errors")
-        errors_action.triggered.connect(lambda: self._quick_filter("Error"))
-        menu.addAction(errors_action)
-        
-        # Show only warnings
-        warnings_action = Action(FluentIcon.WARNING, "Show Only Warnings")
-        warnings_action.triggered.connect(lambda: self._quick_filter("Warning"))
-        menu.addAction(warnings_action)
-        
-        # Show only info
-        info_action = Action(FluentIcon.INFO, "Show Only Info")
-        info_action.triggered.connect(lambda: self._quick_filter("Info"))
-        menu.addAction(info_action)
-        
-        menu.addSeparator()
-        
-        # Clear all filters
-        clear_action = Action(FluentIcon.ACCEPT, "Show All Levels")
-        clear_action.triggered.connect(self._clear_all_filters)
-        menu.addAction(clear_action)
-        
-        # Show menu at cursor position
-        menu.exec(QCursor.pos())
-    
-    def _quick_filter(self, level: str):
-        """Apply a quick filter"""
-        self.level_filter.setCurrentText(level)
-        self.controller.update_status(f"Filter applied - showing only {level}", 'info')
 
     def refresh(self):
         """Allow parent controller to request a soft refresh."""
