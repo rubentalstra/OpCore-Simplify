@@ -5,7 +5,7 @@ Step 3: Configuration - allows users to customize OpenCore EFI settings.
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel,
-    PrimaryPushButton, FluentIcon,
+    FluentIcon,
     GroupHeaderCardWidget
 )
 

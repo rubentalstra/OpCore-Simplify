@@ -4,16 +4,18 @@ Step 2: Compatibility checker - displays hardware compatibility information.
 
 import sys
 from pathlib import Path
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
+
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from qfluentwidgets import (
-    SubtitleLabel, BodyLabel, ScrollArea, FluentIcon, 
-    GroupHeaderCardWidget, TitleLabel, StrongBodyLabel
+    SubtitleLabel, BodyLabel, ScrollArea, FluentIcon,
+    GroupHeaderCardWidget, StrongBodyLabel
 )
 
-from ...datasets import os_data, pci_data
 from ..styles import COLORS, SPACING
-from ..ui_utils import create_info_widget, colored_icon, add_group_with_indent, create_step_indicator, get_compatibility_icon
+from ..ui_utils import create_info_widget, colored_icon, add_group_with_indent, create_step_indicator, \
+    get_compatibility_icon
+from ...datasets import os_data, pci_data
 
 # Add Scripts directory to path for dataset imports
 scripts_path = Path(__file__).parent.parent.parent
