@@ -1,6 +1,6 @@
 # Config.plist Editor
 
-A powerful TreeView-based editor for OpenCore config.plist files with OC Snapshot and validation features.
+A powerful TreeView-based editor for OpenCore config.plist files with OC Snapshot, validation, undo/redo, and advanced editing features.
 
 ## Features
 
@@ -14,7 +14,9 @@ A powerful TreeView-based editor for OpenCore config.plist files with OC Snapsho
 - **Double-click to Edit**: Quick and intuitive editing workflow
 - **Real-time Updates**: Changes are immediately reflected in the tree
 - **Search Functionality**: Quickly find keys in your configuration
-- **Add/Remove Array Items**: Right-click on arrays to add or remove items
+- **Add/Remove Items**: Right-click context menu to add/remove array items and dictionary keys
+- **Drag-and-Drop**: Reorder items within arrays by dragging
+- **Undo/Redo**: Full undo/redo support with 50-level history
 
 ### 2. OC Snapshot
 Automatically scan your OpenCore EFI folder and update config.plist with discovered files:
@@ -63,20 +65,31 @@ Comprehensive validation checks to ensure your config.plist is properly configur
 - Helps prevent conflicts and boot issues
 
 **Kext Dependency Checking**
-- Validates load order for common kexts
-- Checks dependencies like:
-  - Lilu.kext dependencies: WhateverGreen, AppleALC, etc.
-  - VirtualSMC.kext dependencies: SMCProcessor, SMCBatteryManager, etc.
+- Uses comprehensive database of 83+ kexts with dependency information
+- Validates load order for all known kexts
+- Checks dependencies for:
+  - Lilu.kext plugins: WhateverGreen, AppleALC, AirportBrcmFixup, etc.
+  - VirtualSMC.kext plugins: SMCProcessor, SMCBatteryManager, SMCSuperIO, etc.
+  - Bluetooth kexts: IntelBluetoothFirmware, BrcmPatchRAM, etc.
+  - Network kexts: IntelMausi, LucyRTL8125, etc.
+  - And many more...
 - Warns if dependencies are loaded in wrong order
 
 #### Validation Results:
 - **Errors**: Critical issues that may prevent booting
 - **Warnings**: Potential issues or improvements
+- **Export Reports**: Save validation results to JSON or text file for documentation
 
 ### 4. File Operations
 - **Load**: Open any config.plist file
 - **Save**: Save changes to the current file
 - **Save As**: Save to a new file location
+- **Undo/Redo**: Revert or reapply changes (50-level history)
+
+### 5. Export Validation Reports
+- Export validation results to JSON or text format
+- Timestamped reports for tracking configuration health
+- Useful for documentation and troubleshooting
 
 ## How to Use
 
@@ -142,17 +155,20 @@ You can manually edit values in the tree:
 ## Tips
 
 - **Search**: Use the search box to quickly find keys in your configuration
-- **Right-click Arrays**: Right-click on array items to add or remove entries
+- **Right-click Menus**: Right-click on arrays or dictionaries to add/remove items or keys
+- **Drag-and-Drop**: Drag items within arrays to reorder them
+- **Undo/Redo**: Use Ctrl+Z/Ctrl+Y or the toolbar buttons to undo/redo changes
 - **Path Length**: Keep your file and folder names short to avoid exceeding the 128 character limit
 - **Kext Order**: The order in the tree matters for kexts with dependencies
 - **Clean Snapshot**: Use clean snapshot when reorganizing your EFI folder structure
 - **Validation**: Run validation before closing the editor to catch issues early
+- **Export Reports**: Export validation results for documentation or sharing
 
 ## Limitations
 
-- Cannot add/remove dictionary keys (only array items supported)
-- Cannot reorder entries in the tree via drag-and-drop (planned for future release)
-- Kext dependency checking covers common kexts only
+- Undo history limited to 50 actions
+- Drag-and-drop only works within the same parent (arrays)
+- Cannot rename dictionary keys directly (remove and re-add instead)
 
 ## Technical Details
 
@@ -166,6 +182,9 @@ The path length validation uses `OC_STORAGE_SAFE_PATH_MAX = 128` from OpenCorePk
 
 ### File Format
 The editor preserves plist formatting and uses OrderedDict to maintain key order when saving.
+
+### Kext Database
+Uses the comprehensive kext database from the OpCore Simplify project, containing 83+ kexts with full dependency information.
 
 ## Troubleshooting
 
@@ -185,6 +204,10 @@ The editor preserves plist formatting and uses OrderedDict to maintain key order
 - Dictionary and Array containers cannot be edited directly
 - Edit their child values instead
 
+**Q: How do I undo a mistake?**
+- Click the "Undo" button in the toolbar or press Ctrl+Z
+- Up to 50 actions can be undone
+
 ## Recent Enhancements
 
 **Version 2.0 Updates:**
@@ -193,12 +216,18 @@ The editor preserves plist formatting and uses OrderedDict to maintain key order
 - ✅ Code duplication reduced - Now uses shared utils for file I/O
 - ✅ Removed unused dependencies - snapshot.plist no longer required
 
+**Version 3.0 Updates (Latest):**
+- ✅ Add/remove dictionary keys - Full support for adding and removing keys
+- ✅ Drag-and-drop reordering - Reorder array items by dragging
+- ✅ Expanded kext dependency database - 83+ kexts with full dependency information
+- ✅ Undo/redo functionality - 50-level history with toolbar buttons
+- ✅ Export validation reports - Save validation results to JSON or text files
+
 ## Future Enhancements
 
 Planned features for future releases:
-- Add/remove dictionary keys
-- Drag-and-drop reordering in tree
-- Expanded kext dependency database
 - OpenCore version-specific validation
-- Undo/redo functionality
-- Export validation reports
+- Keyboard shortcuts for common operations
+- Advanced search with regex support
+- Batch edit operations
+- Compare two config.plist files

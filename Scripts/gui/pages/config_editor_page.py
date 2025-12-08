@@ -4,7 +4,9 @@ Config.plist Editor Page - TreeView-based plist editor with OC Snapshot function
 
 import os
 import plistlib
+import json
 from collections import OrderedDict
+from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog,
     QTreeWidget, QTreeWidgetItem, QLineEdit, QDialog,
@@ -12,7 +14,7 @@ from PyQt6.QtWidgets import (
     QTextEdit, QMessageBox, QMenu, QInputDialog, QTreeWidgetItemIterator
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QDrag
 from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel, CardWidget,
     StrongBodyLabel, PrimaryPushButton, FluentIcon,
@@ -21,10 +23,11 @@ from qfluentwidgets import (
 )
 
 from ..styles import COLORS, SPACING
+from ...datasets import kext_data
 
 
 class PlistTreeWidget(QTreeWidget):
-    """Custom TreeWidget for displaying and editing plist data"""
+    """Custom TreeWidget for displaying and editing plist data with drag-and-drop"""
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -36,6 +39,12 @@ class PlistTreeWidget(QTreeWidget):
         self.itemDoubleClicked.connect(self.edit_item)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
+        
+        # Enable drag and drop
+        self.setDragEnabled(True)
+        self.setAcceptDrops(True)
+        self.setDragDropMode(QTreeWidget.DragDropMode.InternalMove)
+        self.setDefaultDropAction(Qt.DropAction.MoveAction)
         
     def show_context_menu(self, position):
         """Show context menu for tree items"""
@@ -52,15 +61,100 @@ class PlistTreeWidget(QTreeWidget):
             add_action.triggered.connect(lambda: self.add_array_item(item))
             menu.addAction(add_action)
         
+        if item_type == "Dictionary":
+            add_key_action = QAction("Add Key", self)
+            add_key_action.triggered.connect(lambda: self.add_dict_key(item))
+            menu.addAction(add_key_action)
+        
+        # Remove actions for items within arrays or dictionaries
         if item_type not in ("Dictionary", "Array") and item.parent():
             parent_type = item.parent().text(1)
             if parent_type == "Array":
                 remove_action = QAction("Remove Item", self)
                 remove_action.triggered.connect(lambda: self.remove_array_item(item))
                 menu.addAction(remove_action)
+            elif parent_type == "Dictionary":
+                remove_key_action = QAction("Remove Key", self)
+                remove_key_action.triggered.connect(lambda: self.remove_dict_key(item))
+                menu.addAction(remove_key_action)
         
         if menu.actions():
             menu.exec(self.viewport().mapToGlobal(position))
+    
+    def add_dict_key(self, dict_item):
+        """Add a new key to a dictionary"""
+        # Get key name from user
+        key_name, ok = QInputDialog.getText(
+            self, "Add Dictionary Key", "Enter key name:"
+        )
+        
+        if not ok or not key_name:
+            return
+        
+        # Check if key already exists
+        for i in range(dict_item.childCount()):
+            if dict_item.child(i).text(0) == key_name:
+                QMessageBox.warning(
+                    self, "Key Exists", 
+                    f"Key '{key_name}' already exists in this dictionary."
+                )
+                return
+        
+        # Select value type
+        items = ["String", "Number", "Boolean", "Dictionary", "Array", "Data"]
+        value_type, ok = QInputDialog.getItem(
+            self, "Select Value Type", "Select value type:", items, 0, False
+        )
+        
+        if not ok:
+            return
+        
+        # Create new item
+        new_item = QTreeWidgetItem(dict_item)
+        new_item.setText(0, key_name)
+        
+        # Set default value based on type
+        if value_type == "String":
+            new_item.setText(1, "String")
+            new_item.setText(2, "")
+            new_item.setData(2, Qt.ItemDataRole.UserRole, "")
+        elif value_type == "Number":
+            new_item.setText(1, "Number")
+            new_item.setText(2, "0")
+            new_item.setData(2, Qt.ItemDataRole.UserRole, 0)
+        elif value_type == "Boolean":
+            new_item.setText(1, "Boolean")
+            new_item.setText(2, "false")
+            new_item.setData(2, Qt.ItemDataRole.UserRole, False)
+        elif value_type == "Dictionary":
+            new_item.setText(1, "Dictionary")
+            new_item.setText(2, "0 items")
+            new_item.setData(2, Qt.ItemDataRole.UserRole, OrderedDict())
+        elif value_type == "Array":
+            new_item.setText(1, "Array")
+            new_item.setText(2, "0 items")
+            new_item.setData(2, Qt.ItemDataRole.UserRole, [])
+        elif value_type == "Data":
+            new_item.setText(1, "Data")
+            new_item.setText(2, "")
+            new_item.setData(2, Qt.ItemDataRole.UserRole, b"")
+        
+        dict_item.setExpanded(True)
+    
+    def remove_dict_key(self, item):
+        """Remove a key from a dictionary"""
+        key_name = item.text(0)
+        reply = QMessageBox.question(
+            self, "Remove Key", 
+            f"Are you sure you want to remove key '{key_name}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            parent = item.parent()
+            if parent:
+                index = parent.indexOfChild(item)
+                parent.takeChild(index)
     
     def add_array_item(self, array_item):
         """Add a new item to an array"""
@@ -295,7 +389,7 @@ class ValueEditDialog(QDialog):
 
 
 class ConfigEditorPage(QWidget):
-    """Config.plist Editor Page with TreeView and OC Snapshot"""
+    """Config.plist Editor Page with TreeView, OC Snapshot, and Undo/Redo"""
     
     def __init__(self, parent):
         super().__init__(parent)
@@ -303,7 +397,82 @@ class ConfigEditorPage(QWidget):
         self.controller = parent
         self.current_file = None
         self.plist_data = None
+        
+        # Undo/Redo stacks
+        self.undo_stack = []
+        self.redo_stack = []
+        self.max_undo_stack = 50  # Limit undo history
+        
         self.setup_ui()
+    
+    def save_state(self):
+        """Save current tree state to undo stack"""
+        if len(self.undo_stack) >= self.max_undo_stack:
+            self.undo_stack.pop(0)  # Remove oldest state
+        
+        current_state = self.tree.get_tree_data()
+        self.undo_stack.append(current_state)
+        self.redo_stack.clear()  # Clear redo stack on new action
+        
+        # Update button states
+        self.undo_btn.setEnabled(True)
+        self.redo_btn.setEnabled(False)
+    
+    def undo(self):
+        """Undo last change"""
+        if not self.undo_stack:
+            return
+        
+        # Save current state to redo stack
+        current_state = self.tree.get_tree_data()
+        self.redo_stack.append(current_state)
+        
+        # Restore previous state
+        previous_state = self.undo_stack.pop()
+        self.plist_data = previous_state
+        self.tree.populate_tree(self.plist_data)
+        
+        # Update button states
+        self.undo_btn.setEnabled(len(self.undo_stack) > 0)
+        self.redo_btn.setEnabled(True)
+        
+        InfoBar.success(
+            title='Undo',
+            content='Changes reverted',
+            orient=Qt.Orientation.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP_RIGHT,
+            duration=1000,
+            parent=self
+        )
+    
+    def redo(self):
+        """Redo last undone change"""
+        if not self.redo_stack:
+            return
+        
+        # Save current state to undo stack
+        current_state = self.tree.get_tree_data()
+        self.undo_stack.append(current_state)
+        
+        # Restore redo state
+        redo_state = self.redo_stack.pop()
+        self.plist_data = redo_state
+        self.tree.populate_tree(self.plist_data)
+        
+        # Update button states
+        self.undo_btn.setEnabled(True)
+        self.redo_btn.setEnabled(len(self.redo_stack) > 0)
+        
+        InfoBar.success(
+            title='Redo',
+            content='Changes reapplied',
+            orient=Qt.Orientation.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP_RIGHT,
+            duration=1000,
+            parent=self
+        )
         
     def setup_ui(self):
         """Setup the config editor page UI"""
@@ -358,11 +527,30 @@ class ConfigEditorPage(QWidget):
         
         toolbar_layout.addSpacing(SPACING['medium'])
         
+        # Undo/Redo buttons
+        self.undo_btn = PushButton(FluentIcon.RETURN, "Undo")
+        self.undo_btn.clicked.connect(self.undo)
+        self.undo_btn.setEnabled(False)
+        toolbar_layout.addWidget(self.undo_btn)
+        
+        self.redo_btn = PushButton(FluentIcon.SYNC, "Redo")
+        self.redo_btn.clicked.connect(self.redo)
+        self.redo_btn.setEnabled(False)
+        toolbar_layout.addWidget(self.redo_btn)
+        
+        toolbar_layout.addSpacing(SPACING['medium'])
+        
         # Validation button
         self.validate_btn = PushButton(FluentIcon.ACCEPT, "Validate")
         self.validate_btn.clicked.connect(self.validate_config)
         self.validate_btn.setEnabled(False)
         toolbar_layout.addWidget(self.validate_btn)
+        
+        # Export validation button
+        self.export_validation_btn = PushButton(FluentIcon.SAVE, "Export Validation")
+        self.export_validation_btn.clicked.connect(self.export_validation)
+        self.export_validation_btn.setEnabled(False)
+        toolbar_layout.addWidget(self.export_validation_btn)
         
         toolbar_layout.addStretch()
         
@@ -395,7 +583,7 @@ class ConfigEditorPage(QWidget):
         
         tree_layout.addLayout(header_layout)
         
-        help_label = BodyLabel("Double-click to edit • Right-click arrays to add/remove • Search to filter")
+        help_label = BodyLabel("Double-click to edit • Right-click to add/remove • Drag to reorder • Undo/Redo available")
         help_label.setStyleSheet(f"color: {COLORS['text_tertiary']}; font-size: 12px;")
         tree_layout.addWidget(help_label)
         
@@ -475,6 +663,15 @@ class ConfigEditorPage(QWidget):
             self.current_file = file_path
             self.tree.populate_tree(self.plist_data)
             self.file_label.setText(f"Loaded: {os.path.basename(file_path)}")
+            
+            # Clear undo/redo stacks on new file load
+            self.undo_stack.clear()
+            self.redo_stack.clear()
+            self.undo_btn.setEnabled(False)
+            self.redo_btn.setEnabled(False)
+            
+            # Save initial state
+            self.save_state()
             
             # Enable buttons
             self.save_btn.setEnabled(True)
@@ -638,6 +835,9 @@ class ConfigEditorPage(QWidget):
             # Update tree
             self.tree.populate_tree(tree_data)
             self.plist_data = tree_data
+            
+            # Save state for undo
+            self.save_state()
             
             InfoBar.success(
                 title='Snapshot Complete',
@@ -930,6 +1130,17 @@ class ConfigEditorPage(QWidget):
         if kext_issues:
             warnings.extend(kext_issues)
         
+        # Store validation results for export
+        self.last_validation_results = {
+            "timestamp": datetime.now().isoformat(),
+            "file": self.current_file or "Unsaved",
+            "errors": issues,
+            "warnings": warnings
+        }
+        
+        # Enable export button if there are results
+        self.export_validation_btn.setEnabled(True)
+        
         # Display validation results
         if not issues and not warnings:
             MessageBox(
@@ -954,6 +1165,73 @@ class ConfigEditorPage(QWidget):
             MessageBox(
                 "Validation Results",
                 "\n".join(result_text),
+                self
+            ).exec()
+    
+    def export_validation(self):
+        """Export validation results to a file"""
+        if not hasattr(self, 'last_validation_results'):
+            MessageBox(
+                "No Validation Results",
+                "Please run validation first before exporting.",
+                self
+            ).exec()
+            return
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Validation Report",
+            f"validation_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            "JSON Files (*.json);;Text Files (*.txt);;All Files (*)"
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            if file_path.endswith('.json'):
+                # Export as JSON
+                with open(file_path, 'w') as f:
+                    json.dump(self.last_validation_results, f, indent=2)
+            else:
+                # Export as text
+                with open(file_path, 'w') as f:
+                    f.write("OpenCore Config.plist Validation Report\n")
+                    f.write("=" * 50 + "\n\n")
+                    f.write(f"Timestamp: {self.last_validation_results['timestamp']}\n")
+                    f.write(f"File: {self.last_validation_results['file']}\n\n")
+                    
+                    if self.last_validation_results['errors']:
+                        f.write("ERRORS:\n")
+                        f.write("-" * 50 + "\n")
+                        for error in self.last_validation_results['errors']:
+                            f.write(f"  • {error}\n")
+                        f.write("\n")
+                    
+                    if self.last_validation_results['warnings']:
+                        f.write("WARNINGS:\n")
+                        f.write("-" * 50 + "\n")
+                        for warning in self.last_validation_results['warnings']:
+                            f.write(f"  • {warning}\n")
+                        f.write("\n")
+                    
+                    if not self.last_validation_results['errors'] and not self.last_validation_results['warnings']:
+                        f.write("✓ No issues found. Configuration is valid.\n")
+            
+            InfoBar.success(
+                title='Exported',
+                content=f'Validation report saved to {os.path.basename(file_path)}',
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP_RIGHT,
+                duration=3000,
+                parent=self
+            )
+            
+        except Exception as e:
+            MessageBox(
+                "Export Error",
+                f"Failed to export validation report:\n{str(e)}",
                 self
             ).exec()
     
@@ -1025,31 +1303,19 @@ class ConfigEditorPage(QWidget):
         return warnings
     
     def _check_kext_order(self, tree_data):
-        """Check if kext dependencies are in correct order"""
+        """Check if kext dependencies are in correct order using comprehensive kext database"""
         warnings = []
         
         if "Kernel" not in tree_data or "Add" not in tree_data["Kernel"]:
             return warnings
         
-        # Common kext dependencies
-        kext_dependencies = {
-            "VirtualSMC.kext": [],
-            "Lilu.kext": [],
-            "SMCProcessor.kext": ["VirtualSMC.kext"],
-            "SMCSuperIO.kext": ["VirtualSMC.kext"],
-            "SMCBatteryManager.kext": ["VirtualSMC.kext"],
-            "SMCLightSensor.kext": ["VirtualSMC.kext"],
-            "WhateverGreen.kext": ["Lilu.kext"],
-            "AppleALC.kext": ["Lilu.kext"],
-            "AirportBrcmFixup.kext": ["Lilu.kext"],
-            "IntelMausi.kext": [],
-            "NVMeFix.kext": [],
-            "RestrictEvents.kext": ["Lilu.kext"],
-            "BrightnessKeys.kext": ["VirtualSMC.kext"],
-            "CPUFriend.kext": ["Lilu.kext"],
-            "DebugEnhancer.kext": ["Lilu.kext"],
-            "FeatureUnlock.kext": ["Lilu.kext"],
-        }
+        # Build kext dependencies map from kext_data
+        kext_dependencies = {}
+        for kext_info in kext_data.kexts:
+            kext_name = f"{kext_info.name}.kext"
+            # Convert required kext names to .kext format
+            deps = [f"{dep}.kext" for dep in kext_info.requires_kexts]
+            kext_dependencies[kext_name] = deps
         
         kexts = tree_data["Kernel"]["Add"]
         kext_names = [os.path.basename(k.get("BundlePath", "")) for k in kexts if isinstance(k, dict)]
