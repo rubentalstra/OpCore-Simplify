@@ -25,6 +25,7 @@ from .custom_dialogs import (
     show_input_dialog, show_choice_dialog, show_question_dialog, show_info_dialog,
     show_wifi_network_count_dialog, show_codec_layout_dialog
 )
+from .styles import COLORS
 
 # Import from Scripts package
 scripts_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
