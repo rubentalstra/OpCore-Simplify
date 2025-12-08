@@ -58,6 +58,15 @@ class AddDictKeyDialog(MessageBoxBase):
         # Set dialog size
         self.widget.setMinimumWidth(400)
         
+        # Connect validation to yes button
+        self.yesButton.clicked.disconnect()
+        self.yesButton.clicked.connect(self._on_yes_clicked)
+        
+    def _on_yes_clicked(self):
+        """Handle yes button click with validation"""
+        if self.validate():
+            self.accept()
+        
     def validate(self):
         """Validate the input before accepting"""
         key_name = self.key_name_input.text().strip()
@@ -242,12 +251,9 @@ class PlistTreeWidget(TreeWidget):
         # Get existing keys
         existing_keys = [dict_item.child(i).text(0) for i in range(dict_item.childCount())]
         
-        # Show custom dialog
+        # Show custom dialog (validation happens automatically)
         dialog = AddDictKeyDialog(self, existing_keys)
         if dialog.exec():
-            if not dialog.validate():
-                return
-            
             key_name, value_type = dialog.get_values()
             
             # Create new item
