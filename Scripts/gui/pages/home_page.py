@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QLabel
 from PyQt6.QtCore import Qt
 from qfluentwidgets import (
     SubtitleLabel, BodyLabel, CardWidget, StrongBodyLabel,
-    FluentIcon, IconWidget
+    FluentIcon, IconWidget, InfoBarIcon
 )
 
 from ..styles import COLORS, SPACING
@@ -68,11 +68,11 @@ class HomePage(QWidget):
 
         # Note card
         note_card = CardWidget()
-        note_card.setStyleSheet("""
-            CardWidget {
-                background-color: #E3F2FD;
-                border-left: 4px solid #2196F3;
-            }
+        note_card.setStyleSheet(f"""
+            CardWidget {{
+                background-color: {COLORS['note_bg']};
+                border-left: 4px solid {COLORS['note_border']};
+            }}
         """)
         note_layout = QVBoxLayout(note_card)
         note_layout.setContentsMargins(SPACING['large'], SPACING['large'],
@@ -83,14 +83,14 @@ class HomePage(QWidget):
         note_header_layout = QVBoxLayout()
         note_header_layout.setSpacing(SPACING['small'])
         
-        note_icon_label = StrongBodyLabel("ℹ️  NOTE")
-        note_icon_label.setStyleSheet("color: #1976D2; font-size: 14px;")
+        note_icon_label = StrongBodyLabel("ℹ  NOTE")
+        note_icon_label.setStyleSheet(f"color: {COLORS['note_text']}; font-size: 14px;")
         note_header_layout.addWidget(note_icon_label)
         
         note_layout.addLayout(note_header_layout)
 
         note_title = StrongBodyLabel("OpenCore Legacy Patcher 3.0.0 – Now Supports macOS Tahoe 26!")
-        note_title.setStyleSheet("color: #1565C0;")
+        note_title.setStyleSheet(f"color: {COLORS['note_text']};")
         note_layout.addWidget(note_title)
 
         note_text = BodyLabel(
@@ -109,11 +109,11 @@ class HomePage(QWidget):
 
         # Warning card
         warning_card = CardWidget()
-        warning_card.setStyleSheet("""
-            CardWidget {
-                background-color: #FFF3E0;
-                border-left: 4px solid #FF9800;
-            }
+        warning_card.setStyleSheet(f"""
+            CardWidget {{
+                background-color: {COLORS['warning_bg']};
+                border-left: 4px solid {COLORS['warning_border']};
+            }}
         """)
         warning_layout = QVBoxLayout(warning_card)
         warning_layout.setContentsMargins(SPACING['large'], SPACING['large'],
@@ -124,8 +124,8 @@ class HomePage(QWidget):
         warning_header_layout = QVBoxLayout()
         warning_header_layout.setSpacing(SPACING['small'])
         
-        warning_icon_label = StrongBodyLabel("⚠️  WARNING")
-        warning_icon_label.setStyleSheet("color: #F57C00; font-size: 14px;")
+        warning_icon_label = StrongBodyLabel("⚠  WARNING")
+        warning_icon_label.setStyleSheet(f"color: {COLORS['warning_text']}; font-size: 14px;")
         warning_header_layout.addWidget(warning_icon_label)
         
         warning_layout.addLayout(warning_header_layout)
