@@ -305,7 +305,7 @@ class BuildPage(ScrollArea):
         # Activity header with toggle
         activity_header_layout = QHBoxLayout()
         activity_header_layout.setSpacing(SPACING['medium'])
-        activity_icon = build_icon_label(FluentIcon.FRIGGATRISYSTEM, COLORS['primary'], size=28)
+        activity_icon = build_icon_label(FluentIcon.SYNC, COLORS['primary'], size=28)  # Changed from FRIGGATRISYSTEM
         activity_header_layout.addWidget(activity_icon)
         
         activity_title = SubtitleLabel("Live Build Activity")
@@ -373,7 +373,7 @@ class BuildPage(ScrollArea):
         # 2. ACPI Phase Card
         self.acpi_phase_card = self.create_build_phase_card(
             "ACPI Patches Phase",
-            FluentIcon.LABEL,
+            FluentIcon.TAG,  # Changed from LABEL
             "Applying ACPI patches and DSDT modifications"
         )
         layout.addWidget(self.acpi_phase_card)
@@ -381,7 +381,7 @@ class BuildPage(ScrollArea):
         # 3. Kext Installation Phase Card
         self.kext_phase_card = self.create_build_phase_card(
             "Kext Installation Phase",
-            FluentIcon.PLUG,
+            FluentIcon.DEVELOPER_TOOLS,  # Changed from PLUG
             "Installing and configuring kernel extensions"
         )
         layout.addWidget(self.kext_phase_card)
@@ -432,7 +432,7 @@ class BuildPage(ScrollArea):
         classic_log_header_layout.addStretch()
         
         # Toggle button for collapsing/expanding
-        self.toggle_log_btn = TransparentToolButton(FluentIcon.CHEVRON_DOWN)
+        self.toggle_log_btn = TransparentToolButton(FluentIcon.DOWN)  # Changed from CHEVRON_DOWN
         self.toggle_log_btn.clicked.connect(self.toggle_classic_log)
         classic_log_header_layout.addWidget(self.toggle_log_btn)
         classic_log_layout.addLayout(classic_log_header_layout)
@@ -569,9 +569,9 @@ class BuildPage(ScrollArea):
         
         # Update toggle button icon
         if is_visible:
-            self.toggle_log_btn.setIcon(FluentIcon.CHEVRON_DOWN)
+            self.toggle_log_btn.setIcon(FluentIcon.DOWN)  # Changed from CHEVRON_DOWN
         else:
-            self.toggle_log_btn.setIcon(FluentIcon.CHEVRON_UP)
+            self.toggle_log_btn.setIcon(FluentIcon.UP)  # Changed from CHEVRON_UP
     
     def add_log_entry(self, message, entry_type="info", icon=None):
         """
@@ -593,9 +593,9 @@ class BuildPage(ScrollArea):
         icon_map = {
             "info": (FluentIcon.INFO, COLORS['info']),
             "success": (FluentIcon.COMPLETED, COLORS['success']),
-            "warning": (FluentIcon.IMPORTANT, COLORS['warning']),
+            "warning": (FluentIcon.MEGAPHONE, COLORS['warning']),  # Changed from IMPORTANT
             "error": (FluentIcon.CLOSE, COLORS['error']),
-            "step": (FluentIcon.CHEVRON_RIGHT, COLORS['primary']),
+            "step": (FluentIcon.CARE_RIGHT_SOLID, COLORS['primary']),  # Changed from CHEVRON_RIGHT
             "download": (FluentIcon.DOWNLOAD, COLORS['primary']),
             "process": (FluentIcon.SYNC, COLORS['warning']),
         }
@@ -897,7 +897,7 @@ class BuildPage(ScrollArea):
         
         # Icon
         icon_label = QLabel()
-        icon_label.setPixmap(FluentIcon.PLUG.icon(color=COLORS['success']).pixmap(16, 16))
+        icon_label.setPixmap(FluentIcon.DEVELOPER_TOOLS.icon(color=COLORS['success']).pixmap(16, 16))  # Changed from PLUG
         icon_label.setFixedSize(20, 20)
         kext_layout.addWidget(icon_label)
         
@@ -1048,11 +1048,11 @@ class BuildPage(ScrollArea):
         self.build_log.clear()
         
         # Add initial log entry to activity feed
-        self.add_log_entry("Build process initiated", "step", FluentIcon.PLAY)
+        self.add_log_entry("Build process initiated", "step", FluentIcon.DEVELOPER_TOOLS)  # Changed from PLAY
         self.add_log_entry(f"Target macOS: {self.controller.macos_version_text}", "info")
         self.add_log_entry(f"SMBIOS Model: {self.controller.smbios_model_text}", "info")
         if self.controller.needs_oclp:
-            self.add_log_entry("OpenCore Legacy Patcher support enabled", "warning", FluentIcon.IMPORTANT)
+            self.add_log_entry("OpenCore Legacy Patcher support enabled", "warning", FluentIcon.MEGAPHONE)  # Changed from IMPORTANT
         
         # Log start with enhanced header
         self.controller.log_message(LOG_SEPARATOR, to_console=False, to_build_log=True)
@@ -1166,7 +1166,7 @@ class BuildPage(ScrollArea):
             # Show post-build instructions if we have requirements
             if bios_requirements is not None:
                 self.show_post_build_instructions(bios_requirements)
-                self.add_log_entry("Please review post-build instructions", "warning", FluentIcon.IMPORTANT)
+                self.add_log_entry("Please review post-build instructions", "warning", FluentIcon.MEGAPHONE)  # Changed from IMPORTANT
             
             # Reset build button
             self.build_btn.setText("Build OpenCore EFI")
