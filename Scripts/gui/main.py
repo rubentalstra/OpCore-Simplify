@@ -374,6 +374,9 @@ class OpCoreGUI(FluentWindow):
         for utils in utils_instances:
             if hasattr(utils, "gui_log_callback"):
                 utils.gui_log_callback = self._dispatch_backend_log
+            # WiFi visualization callback
+            if not hasattr(utils, 'gui_wifi_visualization_callback'):
+                utils.gui_wifi_visualization_callback = self.visualize_wifi_profiles_threadsafe
 
     def init_navigation(self):
         """Initialize navigation sidebar and pages"""
@@ -457,12 +460,27 @@ class OpCoreGUI(FluentWindow):
                         entry_type = "info"
                         icon = None
                         
-                        if "downloading" in line.lower() or "download" in line.lower():
+                        # Detect and visualize build phases and components
+                        if "downloading" in line.lower() or "⬇️" in line or "download" in line.lower():
                             entry_type = "download"
                             icon = FluentIcon.DOWNLOAD
-                        elif "extracted" in line.lower() or "processing" in line.lower():
+                            # Extract component name if present
+                            if "Downloading" in line:
+                                parts = line.split("Downloading")
+                                if len(parts) > 1:
+                                    comp_name = parts[1].strip().split("(")[0].strip()
+                                    if comp_name and not comp_name.startswith("..."):
+                                        self.buildPage.add_download_component_card(comp_name)
+                        elif "extracted" in line.lower() or "📦" in line or "processing" in line.lower():
                             entry_type = "process"
                             icon = FluentIcon.SYNC
+                            # Update download status
+                            if "Extracting" in line:
+                                parts = line.split("Extracting")
+                                if len(parts) > 1:
+                                    comp_name = parts[1].strip().split("...")[0].strip()
+                                    if comp_name:
+                                        self.buildPage.update_download_component_status(comp_name, "✓ Extracted", True)
                         elif "✓" in line or "success" in line.lower() or "complete" in line.lower():
                             entry_type = "success"
                             icon = FluentIcon.COMPLETED
@@ -475,6 +493,26 @@ class OpCoreGUI(FluentWindow):
                         elif line.startswith("Phase") or line.startswith("[Step"):
                             entry_type = "step"
                             icon = FluentIcon.CHEVRON_RIGHT
+                        
+                        # Detect WiFi profiles
+                        if "WiFi_" in line or "SSID" in line or "📶" in line:
+                            if hasattr(self.buildPage, 'kext_phase_card'):
+                                self.buildPage.kext_phase_card.setVisible(True)
+                        
+                        # Detect ACPI patches
+                        if "ACPI" in line or "patch" in line.lower() and "apply" in line.lower():
+                            if hasattr(self.buildPage, 'acpi_phase_card'):
+                                self.buildPage.acpi_phase_card.setVisible(True)
+                        
+                        # Detect kext installation
+                        if ".kext" in line and ("install" in line.lower() or "add" in line.lower()):
+                            if hasattr(self.buildPage, 'kext_phase_card'):
+                                self.buildPage.kext_phase_card.setVisible(True)
+                                # Extract kext name
+                                if ".kext" in line:
+                                    kext_name = line.split(".kext")[0].split("/")[-1].split("\\")[-1]
+                                    if kext_name:
+                                        self.buildPage.add_kext_item(kext_name)
                         
                         self.buildPage.add_log_entry(line, entry_type, icon)
 
@@ -905,6 +943,23 @@ class OpCoreGUI(FluentWindow):
         product_name = progress_info.get('product_name', '')
         status = progress_info.get('status', 'downloading')
 
+        # Show gathering phase card
+        if hasattr(self, 'buildPage') and self.buildPage.build_in_progress:
+            if hasattr(self.buildPage, 'gathering_phase_card'):
+                self.buildPage.gathering_phase_card.setVisible(True)
+                if status == 'complete':
+                    self.buildPage.update_phase_status(
+                        self.buildPage.gathering_phase_card, 
+                        "✓ Complete", 
+                        COLORS['success']
+                    )
+                else:
+                    self.buildPage.update_phase_status(
+                        self.buildPage.gathering_phase_card, 
+                        f"In Progress ({current}/{total})", 
+                        COLORS['primary']
+                    )
+
         # Update progress bar - gathering phase uses 0-40% of total progress
         if self.progress_bar:
             if status == 'complete':
@@ -967,6 +1022,50 @@ class OpCoreGUI(FluentWindow):
 
     def update_build_progress(self, title, steps, current_step_index, progress, done):
         """Update build progress in GUI with enhanced messaging"""
+        # Show appropriate phase cards based on current step
+        if hasattr(self, 'buildPage') and self.buildPage.build_in_progress:
+            step_text = steps[current_step_index] if current_step_index < len(steps) else ""
+            
+            # Show ACPI phase card
+            if "ACPI" in step_text or "patch" in step_text.lower():
+                if hasattr(self.buildPage, 'acpi_phase_card'):
+                    self.buildPage.acpi_phase_card.setVisible(True)
+                    self.buildPage.update_phase_status(
+                        self.buildPage.acpi_phase_card,
+                        "In Progress" if not done else "✓ Complete",
+                        COLORS['primary'] if not done else COLORS['success']
+                    )
+            
+            # Show kext phase card
+            if "kernel" in step_text.lower() or "kext" in step_text.lower() or "extension" in step_text.lower():
+                if hasattr(self.buildPage, 'kext_phase_card'):
+                    self.buildPage.kext_phase_card.setVisible(True)
+                    self.buildPage.update_phase_status(
+                        self.buildPage.kext_phase_card,
+                        "In Progress" if not done else "✓ Complete",
+                        COLORS['primary'] if not done else COLORS['success']
+                    )
+            
+            # Show config phase card
+            if "config" in step_text.lower() or "generat" in step_text.lower():
+                if hasattr(self.buildPage, 'config_phase_card'):
+                    self.buildPage.config_phase_card.setVisible(True)
+                    self.buildPage.update_phase_status(
+                        self.buildPage.config_phase_card,
+                        "In Progress" if not done else "✓ Complete",
+                        COLORS['primary'] if not done else COLORS['success']
+                    )
+            
+            # Show cleanup phase card
+            if "clean" in step_text.lower() or "remov" in step_text.lower() or "unused" in step_text.lower():
+                if hasattr(self.buildPage, 'cleanup_phase_card'):
+                    self.buildPage.cleanup_phase_card.setVisible(True)
+                    self.buildPage.update_phase_status(
+                        self.buildPage.cleanup_phase_card,
+                        "In Progress" if not done else "✓ Complete",
+                        COLORS['primary'] if not done else COLORS['success']
+                    )
+        
         # Update progress bar - map build phase to 40-100% range
         if self.progress_bar:
             # Gathering phase uses 0-40%, building phase uses 40-100%
@@ -1036,6 +1135,25 @@ class OpCoreGUI(FluentWindow):
         # Re-enable the build button for next build
         if self.build_btn:
             self.build_btn.setEnabled(True)
+    
+    def visualize_wifi_profiles_threadsafe(self, profiles):
+        """Thread-safe method to visualize WiFi profiles in the build page"""
+        if threading.current_thread() == threading.main_thread():
+            self.visualize_wifi_profiles(profiles)
+        else:
+            # Use Qt's invokeMethod or a signal to call on main thread
+            # For now, use a simple approach
+            import functools
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(0, functools.partial(self.visualize_wifi_profiles, profiles))
+    
+    def visualize_wifi_profiles(self, profiles):
+        """Visualize WiFi profiles in the build page"""
+        if hasattr(self, 'buildPage') and profiles:
+            try:
+                self.buildPage.create_wifi_profiles_table(profiles)
+            except Exception as e:
+                print(f"Error visualizing WiFi profiles: {e}")
 
     def run(self):
         """Run the application"""

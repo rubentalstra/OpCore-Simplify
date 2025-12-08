@@ -1,18 +1,20 @@
 """
 Step 4: Build EFI - allows users to build their customized OpenCore EFI.
 Enhanced with stunning UI/UX using qfluentwidgets components.
+All build steps are visualized with proper widgets instead of plain text.
 """
 
 import platform
 from datetime import datetime
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout
+from PyQt6.QtCore import Qt, QTimer, QAbstractTableModel, QModelIndex
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout, QTableWidgetItem, QHeaderView
 from PyQt6.QtGui import QFont
 from qfluentwidgets import (
     SubtitleLabel, BodyLabel, CardWidget, TextEdit,
     StrongBodyLabel, ProgressBar, PrimaryPushButton, FluentIcon,
     ScrollArea, InfoBar, InfoBarPosition, TitleLabel, ProgressRing,
-    TransparentToolButton, IconWidget, CaptionLabel, IndeterminateProgressRing
+    TransparentToolButton, IconWidget, CaptionLabel, IndeterminateProgressRing,
+    TableWidget, TableView, PushButton
 )
 
 from ..styles import COLORS, SPACING, RADIUS
@@ -42,6 +44,21 @@ class BuildPage(ScrollArea):
         self.log_entries = []
         self.build_start_time = None
         self.stats_timer = None
+        
+        # Visual build component tracking
+        self.download_cards = {}  # Component name -> card widget
+        self.kext_install_widgets = {}  # Kext name -> widget
+        self.acpi_patch_widgets = {}  # Patch name -> widget
+        self.wifi_table = None  # WiFi profiles table
+        self.codec_config_card = None  # Audio codec configuration card
+        self.cleanup_list = None  # Cleanup files list
+        
+        # Build phase cards
+        self.gathering_phase_card = None
+        self.acpi_phase_card = None
+        self.kext_phase_card = None
+        self.config_phase_card = None
+        self.cleanup_phase_card = None
         
         self.setup_ui()
 
@@ -338,6 +355,49 @@ class BuildPage(ScrollArea):
         self.activity_card.setVisible(False)
         layout.addWidget(self.activity_card)
 
+        # Build Phase Visualization Cards (initially hidden)
+        # These cards show visual representations of each build phase
+        
+        # 1. File Gathering Phase Card
+        self.gathering_phase_card = self.create_build_phase_card(
+            "File Gathering Phase",
+            FluentIcon.DOWNLOAD,
+            "Downloading and extracting OpenCore components and kexts"
+        )
+        layout.addWidget(self.gathering_phase_card)
+        
+        # 2. ACPI Phase Card
+        self.acpi_phase_card = self.create_build_phase_card(
+            "ACPI Patches Phase",
+            FluentIcon.LABEL,
+            "Applying ACPI patches and DSDT modifications"
+        )
+        layout.addWidget(self.acpi_phase_card)
+        
+        # 3. Kext Installation Phase Card
+        self.kext_phase_card = self.create_build_phase_card(
+            "Kext Installation Phase",
+            FluentIcon.PLUG,
+            "Installing and configuring kernel extensions"
+        )
+        layout.addWidget(self.kext_phase_card)
+        
+        # 4. Configuration Phase Card  
+        self.config_phase_card = self.create_build_phase_card(
+            "Configuration Phase",
+            FluentIcon.SETTING,
+            "Generating config.plist with customized settings"
+        )
+        layout.addWidget(self.config_phase_card)
+        
+        # 5. Cleanup Phase Card
+        self.cleanup_phase_card = self.create_build_phase_card(
+            "Cleanup Phase",
+            FluentIcon.DELETE,
+            "Removing unused drivers, resources, and tools"
+        )
+        layout.addWidget(self.cleanup_phase_card)
+
         # Classic Build Log Card (collapsible, initially hidden)
         self.classic_log_card = CardWidget(self.scrollWidget)
         self.classic_log_card.setBorderRadius(RADIUS['card'])
@@ -589,6 +649,305 @@ class BuildPage(ScrollArea):
             old_entry = self.log_entries.pop(0)
             old_entry.deleteLater()
     
+    def create_build_phase_card(self, title, icon, description):
+        """Create a collapsible card for a build phase with visual content area"""
+        card = CardWidget(self.scrollWidget)
+        card.setBorderRadius(RADIUS['card'])
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(SPACING['large'], SPACING['large'],
+                                       SPACING['large'], SPACING['large'])
+        card_layout.setSpacing(SPACING['medium'])
+        
+        # Header
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(SPACING['medium'])
+        
+        phase_icon = build_icon_label(icon, COLORS['primary'], size=28)
+        header_layout.addWidget(phase_icon)
+        
+        phase_title = SubtitleLabel(title)
+        phase_title.setStyleSheet(f"color: {COLORS['text_primary']}; font-weight: 600;")
+        header_layout.addWidget(phase_title)
+        
+        header_layout.addStretch()
+        
+        # Status indicator
+        status_label = CaptionLabel("Pending")
+        status_label.setObjectName("statusLabel")
+        status_label.setStyleSheet(f"color: {COLORS['text_tertiary']};")
+        header_layout.addWidget(status_label)
+        
+        card_layout.addLayout(header_layout)
+        
+        # Description
+        desc_label = BodyLabel(description)
+        desc_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 13px;")
+        card_layout.addWidget(desc_label)
+        
+        # Content area (will be populated dynamically)
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, SPACING['small'], 0, 0)
+        content_layout.setSpacing(SPACING['small'])
+        content_widget.setObjectName("contentWidget")
+        card_layout.addWidget(content_widget)
+        
+        card.setVisible(False)
+        return card
+    
+    def update_phase_status(self, phase_card, status, color=None):
+        """Update the status of a build phase card"""
+        if not phase_card:
+            return
+        
+        status_label = phase_card.findChild(CaptionLabel, "statusLabel")
+        if status_label:
+            status_label.setText(status)
+            if color:
+                status_label.setStyleSheet(f"color: {color};")
+    
+    def add_download_component_card(self, component_name, version=""):
+        """Add a visual card for a downloading component"""
+        if not self.gathering_phase_card:
+            return
+        
+        content_widget = self.gathering_phase_card.findChild(QWidget, "contentWidget")
+        if not content_widget:
+            return
+        
+        # Create component download widget
+        comp_widget = QWidget()
+        comp_layout = QHBoxLayout(comp_widget)
+        comp_layout.setContentsMargins(SPACING['medium'], SPACING['small'],
+                                       SPACING['medium'], SPACING['small'])
+        comp_layout.setSpacing(SPACING['medium'])
+        
+        # Icon
+        icon_label = QLabel()
+        icon_label.setPixmap(FluentIcon.DOWNLOAD.icon(color=COLORS['primary']).pixmap(20, 20))
+        icon_label.setFixedSize(24, 24)
+        comp_layout.addWidget(icon_label)
+        
+        # Name and version
+        name_label = BodyLabel(f"{component_name} {version}".strip())
+        name_label.setStyleSheet(f"color: {COLORS['text_primary']}; font-size: 13px;")
+        comp_layout.addWidget(name_label, stretch=1)
+        
+        # Status
+        status_label = CaptionLabel("Downloading...")
+        status_label.setObjectName("compStatus")
+        status_label.setStyleSheet(f"color: {COLORS['primary']};")
+        comp_layout.addWidget(status_label)
+        
+        comp_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: rgba(0, 120, 212, 0.05);
+                border-radius: {RADIUS['small']}px;
+            }}
+        """)
+        
+        content_widget.layout().addWidget(comp_widget)
+        self.download_cards[component_name] = comp_widget
+    
+    def update_download_component_status(self, component_name, status, is_success=True):
+        """Update the status of a downloading component"""
+        if component_name not in self.download_cards:
+            return
+        
+        comp_widget = self.download_cards[component_name]
+        status_label = comp_widget.findChild(CaptionLabel, "compStatus")
+        
+        if status_label:
+            status_label.setText(status)
+            color = COLORS['success'] if is_success else COLORS['error']
+            status_label.setStyleSheet(f"color: {color};")
+        
+        # Update icon
+        icon_labels = comp_widget.findChildren(QLabel)
+        if icon_labels:
+            new_icon = FluentIcon.COMPLETED if is_success else FluentIcon.CLOSE
+            icon_labels[0].setPixmap(new_icon.icon(color=color).pixmap(20, 20))
+    
+    def create_wifi_profiles_table(self, profiles):
+        """Create a TableWidget to display WiFi profiles"""
+        if not self.kext_phase_card or not profiles:
+            return
+        
+        content_widget = self.kext_phase_card.findChild(QWidget, "contentWidget")
+        if not content_widget:
+            return
+        
+        # Header
+        wifi_header = StrongBodyLabel("📶 WiFi Profiles Configured")
+        wifi_header.setStyleSheet(f"color: {COLORS['text_primary']}; margin-top: {SPACING['medium']}px;")
+        content_widget.layout().addWidget(wifi_header)
+        
+        # Create table
+        self.wifi_table = TableWidget()
+        self.wifi_table.setColumnCount(3)
+        self.wifi_table.setHorizontalHeaderLabels(["SSID", "Password", "Status"])
+        self.wifi_table.setRowCount(len(profiles))
+        
+        # Style the table
+        self.wifi_table.setStyleSheet(f"""
+            TableWidget {{
+                background-color: rgba(0, 0, 0, 0.02);
+                border: 1px solid rgba(0, 0, 0, 0.08);
+                border-radius: {RADIUS['small']}px;
+            }}
+        """)
+        
+        # Populate table
+        for row, (ssid, password) in enumerate(profiles):
+            # SSID
+            ssid_item = QTableWidgetItem(ssid)
+            ssid_item.setFlags(ssid_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.wifi_table.setItem(row, 0, ssid_item)
+            
+            # Password (masked)
+            masked_password = "•" * min(len(password), 12) if password else "(Open Network)"
+            password_item = QTableWidgetItem(masked_password)
+            password_item.setFlags(password_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.wifi_table.setItem(row, 1, password_item)
+            
+            # Status
+            status_item = QTableWidgetItem("✓ Configured")
+            status_item.setFlags(status_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.wifi_table.setItem(row, 2, status_item)
+        
+        # Resize columns
+        header = self.wifi_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        
+        self.wifi_table.setMaximumHeight(200)
+        content_widget.layout().addWidget(self.wifi_table)
+    
+    def add_acpi_patch_item(self, patch_name, status="Applied"):
+        """Add a visual item for an ACPI patch"""
+        if not self.acpi_phase_card:
+            return
+        
+        content_widget = self.acpi_phase_card.findChild(QWidget, "contentWidget")
+        if not content_widget:
+            return
+        
+        # Create patch item
+        patch_widget = QWidget()
+        patch_layout = QHBoxLayout(patch_widget)
+        patch_layout.setContentsMargins(SPACING['medium'], SPACING['small'],
+                                        SPACING['medium'], SPACING['small'])
+        patch_layout.setSpacing(SPACING['medium'])
+        
+        # Icon
+        icon_label = QLabel()
+        icon_label.setPixmap(FluentIcon.COMPLETED.icon(color=COLORS['success']).pixmap(16, 16))
+        icon_label.setFixedSize(20, 20)
+        patch_layout.addWidget(icon_label)
+        
+        # Patch name
+        name_label = BodyLabel(patch_name)
+        name_label.setStyleSheet(f"color: {COLORS['text_primary']}; font-size: 13px;")
+        patch_layout.addWidget(name_label, stretch=1)
+        
+        # Status
+        status_label = CaptionLabel(status)
+        status_label.setStyleSheet(f"color: {COLORS['success']};")
+        patch_layout.addWidget(status_label)
+        
+        patch_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: rgba(16, 124, 16, 0.05);
+                border-radius: {RADIUS['small']}px;
+            }}
+        """)
+        
+        content_widget.layout().addWidget(patch_widget)
+        self.acpi_patch_widgets[patch_name] = patch_widget
+    
+    def add_kext_item(self, kext_name, status="Installed"):
+        """Add a visual item for an installed kext"""
+        if not self.kext_phase_card:
+            return
+        
+        content_widget = self.kext_phase_card.findChild(QWidget, "contentWidget")
+        if not content_widget:
+            return
+        
+        # Create kext item
+        kext_widget = QWidget()
+        kext_layout = QHBoxLayout(kext_widget)
+        kext_layout.setContentsMargins(SPACING['medium'], SPACING['small'],
+                                       SPACING['medium'], SPACING['small'])
+        kext_layout.setSpacing(SPACING['medium'])
+        
+        # Icon
+        icon_label = QLabel()
+        icon_label.setPixmap(FluentIcon.PLUG.icon(color=COLORS['success']).pixmap(16, 16))
+        icon_label.setFixedSize(20, 20)
+        kext_layout.addWidget(icon_label)
+        
+        # Kext name
+        name_label = BodyLabel(kext_name)
+        name_label.setStyleSheet(f"color: {COLORS['text_primary']}; font-size: 13px;")
+        kext_layout.addWidget(name_label, stretch=1)
+        
+        # Status
+        status_label = CaptionLabel(status)
+        status_label.setStyleSheet(f"color: {COLORS['success']};")
+        kext_layout.addWidget(status_label)
+        
+        kext_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: rgba(16, 124, 16, 0.05);
+                border-radius: {RADIUS['small']}px;
+            }}
+        """)
+        
+        content_widget.layout().addWidget(kext_widget)
+        self.kext_install_widgets[kext_name] = kext_widget
+    
+    def add_codec_configuration(self, codec_name, layout_id):
+        """Add audio codec configuration visualization"""
+        if not self.config_phase_card:
+            return
+        
+        content_widget = self.config_phase_card.findChild(QWidget, "contentWidget")
+        if not content_widget:
+            return
+        
+        # Codec card
+        codec_widget = QWidget()
+        codec_layout = QVBoxLayout(codec_widget)
+        codec_layout.setContentsMargins(SPACING['medium'], SPACING['medium'],
+                                        SPACING['medium'], SPACING['medium'])
+        codec_layout.setSpacing(SPACING['small'])
+        
+        # Header
+        header_label = StrongBodyLabel("🔊 Audio Configuration")
+        header_label.setStyleSheet(f"color: {COLORS['text_primary']};")
+        codec_layout.addWidget(header_label)
+        
+        # Details
+        codec_label = BodyLabel(f"Codec: {codec_name}")
+        codec_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 13px;")
+        codec_layout.addWidget(codec_label)
+        
+        layout_label = BodyLabel(f"Layout ID: {layout_id}")
+        layout_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 13px;")
+        codec_layout.addWidget(layout_label)
+        
+        codec_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: rgba(0, 120, 212, 0.05);
+                border-radius: {RADIUS['small']}px;
+            }}
+        """)
+        
+        content_widget.layout().addWidget(codec_widget)
+        self.codec_config_card = codec_widget
+    
     def update_stats(self):
         """Update build statistics display"""
         if self.build_start_time:
@@ -652,6 +1011,24 @@ class BuildPage(ScrollArea):
         for entry in self.log_entries:
             entry.deleteLater()
         self.log_entries.clear()
+        
+        # Reset and hide all phase cards
+        self.download_cards.clear()
+        self.kext_install_widgets.clear()
+        self.acpi_patch_widgets.clear()
+        
+        for phase_card in [self.gathering_phase_card, self.acpi_phase_card, 
+                           self.kext_phase_card, self.config_phase_card, self.cleanup_phase_card]:
+            if phase_card:
+                phase_card.setVisible(False)
+                self.update_phase_status(phase_card, "Pending", COLORS['text_tertiary'])
+                # Clear content
+                content_widget = phase_card.findChild(QWidget, "contentWidget")
+                if content_widget and content_widget.layout():
+                    while content_widget.layout().count():
+                        item = content_widget.layout().takeAt(0)
+                        if item.widget():
+                            item.widget().deleteLater()
         
         # Hide success card and clear log
         self.success_card.setVisible(False)

@@ -438,4 +438,11 @@ class WifiProfileExtractor:
             # Only show "Press Enter to continue" prompt in CLI mode
             if not self.utils.gui_callback:
                 self.utils.request_input()
+            else:
+                # In GUI mode, call visualization callback if available
+                if hasattr(self.utils, 'gui_wifi_visualization_callback') and self.utils.gui_wifi_visualization_callback:
+                    try:
+                        self.utils.gui_wifi_visualization_callback(profiles)
+                    except Exception as e:
+                        self.log(f"Could not visualize WiFi profiles: {e}")
         return profiles
