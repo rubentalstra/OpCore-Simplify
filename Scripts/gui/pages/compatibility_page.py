@@ -29,6 +29,14 @@ class CompatibilityPage(ScrollArea):
         self.controller = parent
         self.scrollWidget = QWidget()
         self.expandLayout = QVBoxLayout(self.scrollWidget)
+        
+        # Initialize widget references
+        self.contentWidget = None
+        self.contentLayout = None
+        self.version_support_container = None
+        self.native_support_label = None
+        self.ocl_support_label = None
+        
         self.setup_ui()
 
     def setup_ui(self):
@@ -46,18 +54,6 @@ class CompatibilityPage(ScrollArea):
 
         # Step indicator
         self.expandLayout.addWidget(create_step_indicator(2))
-        self.setObjectName("compatibilityPage")
-        self.controller = parent
-        self.scrollWidget = QWidget()
-        self.expandLayout = QVBoxLayout()
-        self.contentWidget = None
-        self.contentLayout = None
-        self.version_support_container = None
-        self.native_support_label = None
-        self.ocl_support_label = None
-        # Explicitly set the layout on the scroll widget to ensure proper display
-        self.scrollWidget.setLayout(self.expandLayout)
-        self.setup_ui()
 
     def setup_ui(self):
         """Setup the compatibility page UI"""

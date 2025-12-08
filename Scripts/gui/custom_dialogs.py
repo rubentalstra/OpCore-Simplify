@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any, Tuple
 
 from PyQt6.QtWidgets import (
     QLabel, QDialog, QVBoxLayout, QHBoxLayout,
-    QScrollArea, QWidget, QButtonGroup, QRadioButton, QCheckBox
+    QScrollArea, QWidget, QButtonGroup, QRadioButton
 )
 from PyQt6.QtCore import Qt
 from qfluentwidgets import (

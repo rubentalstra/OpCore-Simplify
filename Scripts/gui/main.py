@@ -42,9 +42,11 @@ class ConsoleRedirector(QObject):
     LEVEL_PATTERN = re.compile(r"\[(info|warning|error|debug)\]", re.IGNORECASE)
     
     # Log level detection keywords
-    ERROR_KEYWORDS = ("error", "traceback", "failed")
-    WARNING_KEYWORDS = ("warning", "warn")
-    DEBUG_KEYWORDS = ("debug",)
+    LEVEL_KEYWORDS = {
+        "Error": ("error", "traceback", "failed"),
+        "Warning": ("warning", "warn"),
+        "Debug": ("debug",),
+    }
 
     def __init__(self, controller, original_stdout=None, default_level: str = "Info"):
         super().__init__()
@@ -99,15 +101,11 @@ class ConsoleRedirector(QObject):
         if match:
             return match.group(1).capitalize()
 
-        # Fallback to keyword detection
+        # Fallback to keyword detection using mapping
         lowered = text.lower()
-        
-        if any(keyword in lowered for keyword in self.ERROR_KEYWORDS):
-            return "Error"
-        if any(keyword in lowered for keyword in self.WARNING_KEYWORDS):
-            return "Warning"
-        if any(keyword in lowered for keyword in self.DEBUG_KEYWORDS):
-            return "Debug"
+        for level, keywords in self.LEVEL_KEYWORDS.items():
+            if any(keyword in lowered for keyword in keywords):
+                return level
             
         return self.default_level
 
