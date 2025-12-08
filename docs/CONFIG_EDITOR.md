@@ -7,15 +7,17 @@ A powerful TreeView-based editor for OpenCore config.plist files with OC Snapsho
 ### 1. Interactive TreeView Editor
 - **Fluent Design TreeView**: Modern hierarchical display with smooth animations and Fluent Design styling
 - **Auto-Expand**: Tree fully expands on file load for quick overview
-- **Type-aware Editing**: Edit values with appropriate controls:
-  - Boolean: Checkbox
-  - Number: Spin box with proper range
-  - String: Text input
-  - Data: Hexadecimal editor
-- **Double-click to Edit**: Quick and intuitive editing workflow
+- **Fluent Design Dialogs**: Modern, beautiful dialogs for all editing operations with proper validation
+- **Type-aware Editing**: Edit values with appropriate Fluent controls:
+  - Boolean: Fluent CheckBox
+  - Number: Fluent SpinBox with proper range
+  - String: Fluent LineEdit with clear button
+  - Data: Fluent PlainTextEdit for hexadecimal editing
+- **Double-click to Edit**: Quick and intuitive editing workflow with polished dialogs
 - **Real-time Updates**: Changes are immediately reflected in the tree
 - **Search Functionality**: Quickly find keys in your configuration
 - **Fluent Context Menus**: Right-click to add/remove array items and dictionary keys with modern RoundMenu
+- **Smart Key Management**: Duplicate key detection and validation in add key dialog
 - **Drag-and-Drop**: Reorder items within arrays by dragging
 - **Undo/Redo**: Full undo/redo support with 50-level history
 - **CommandBar**: Modern command bar with text labels and icons for all major operations
@@ -225,12 +227,20 @@ Uses the comprehensive kext database from the OpenCore Simplify project, contain
 - ✅ Undo/redo functionality - 50-level history with toolbar buttons
 - ✅ Export validation reports - Save validation results to JSON or text files
 
-**Version 4.0 Updates (Latest):**
+**Version 4.0 Updates:**
 - ✅ Fluent Design UI - Migrated to qfluentwidgets TreeWidget for consistent modern UI
 - ✅ RoundMenu - Modern context menus with Fluent Design styling
 - ✅ CommandBar - Compact command bar with all operations in one place
 - ✅ Better visual consistency - Matches the Fluent Design system throughout the app
 - ✅ Smoother animations - Enhanced user experience with fluid transitions
+
+**Version 4.1 Updates (Latest):**
+- ✅ Fluent Design Dialogs - All dialogs upgraded to MessageBoxBase with modern styling
+- ✅ Smart Input Validation - Real-time validation in add key dialog with duplicate detection
+- ✅ Enhanced Edit Dialogs - Type-specific Fluent controls (LineEdit, SpinBox, CheckBox, PlainTextEdit)
+- ✅ Improved User Feedback - Success notifications for operations like key removal
+- ✅ Better UX - Clear buttons, placeholders, and proper dialog sizing
+- ✅ Code Cleanup - Removed old PyQt6 dialog components for cleaner codebase
 
 ## Future Enhancements
 

@@ -9,20 +9,177 @@ from collections import OrderedDict
 from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog,
-    QTreeWidgetItem, QLineEdit, QDialog,
-    QDialogButtonBox, QLabel, QCheckBox, QComboBox, QSpinBox,
-    QTextEdit, QMessageBox, QInputDialog, QTreeWidgetItemIterator
+    QTreeWidgetItem, QLineEdit, QTreeWidgetItemIterator
 )
 from PyQt6.QtCore import Qt
 from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel, CardWidget,
     StrongBodyLabel, PrimaryPushButton, FluentIcon,
     InfoBar, InfoBarPosition, MessageBox, ComboBox as FluentComboBox,
-    ToolButton, SearchLineEdit, TreeWidget, RoundMenu, CommandBar, Action
+    ToolButton, SearchLineEdit, TreeWidget, RoundMenu, CommandBar, Action,
+    MessageBoxBase, LineEdit, CheckBox, SpinBox as FluentSpinBox,
+    TextEdit, PlainTextEdit
 )
 
 from ..styles import COLORS, SPACING
 from ...datasets import kext_data
+
+
+class AddDictKeyDialog(MessageBoxBase):
+    """Fluent Design dialog for adding a dictionary key"""
+    
+    def __init__(self, parent=None, existing_keys=None):
+        super().__init__(parent)
+        self.existing_keys = existing_keys or []
+        
+        self.titleLabel = SubtitleLabel("Add Dictionary Key")
+        self.key_name_label = BodyLabel("Key Name:")
+        self.key_name_input = LineEdit()
+        self.key_name_input.setPlaceholderText("Enter unique key name...")
+        self.key_name_input.setClearButtonEnabled(True)
+        
+        self.type_label = BodyLabel("Value Type:")
+        self.type_combo = FluentComboBox()
+        self.type_combo.addItems(["String", "Number", "Boolean", "Dictionary", "Array", "Data"])
+        self.type_combo.setCurrentIndex(0)
+        
+        # Add widgets to dialog
+        self.viewLayout.addWidget(self.titleLabel)
+        self.viewLayout.addSpacing(10)
+        self.viewLayout.addWidget(self.key_name_label)
+        self.viewLayout.addWidget(self.key_name_input)
+        self.viewLayout.addSpacing(10)
+        self.viewLayout.addWidget(self.type_label)
+        self.viewLayout.addWidget(self.type_combo)
+        
+        self.yesButton.setText("Add")
+        self.cancelButton.setText("Cancel")
+        
+        # Set dialog size
+        self.widget.setMinimumWidth(400)
+        
+    def validate(self):
+        """Validate the input before accepting"""
+        key_name = self.key_name_input.text().strip()
+        if not key_name:
+            InfoBar.warning(
+                title="Invalid Input",
+                content="Key name cannot be empty",
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=2000,
+                parent=self
+            )
+            return False
+        
+        if key_name in self.existing_keys:
+            InfoBar.warning(
+                title="Duplicate Key",
+                content=f"Key '{key_name}' already exists",
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=2000,
+                parent=self
+            )
+            return False
+        
+        return True
+    
+    def get_values(self):
+        """Get the input values"""
+        return self.key_name_input.text().strip(), self.type_combo.currentText()
+
+
+class AddArrayItemDialog(MessageBoxBase):
+    """Fluent Design dialog for adding an array item"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        self.titleLabel = SubtitleLabel("Add Array Item")
+        self.type_label = BodyLabel("Select the type of item to add:")
+        self.type_combo = FluentComboBox()
+        self.type_combo.addItems(["String", "Number", "Boolean", "Dictionary", "Array"])
+        self.type_combo.setCurrentIndex(0)
+        
+        # Add widgets to dialog
+        self.viewLayout.addWidget(self.titleLabel)
+        self.viewLayout.addSpacing(10)
+        self.viewLayout.addWidget(self.type_label)
+        self.viewLayout.addWidget(self.type_combo)
+        
+        self.yesButton.setText("Add")
+        self.cancelButton.setText("Cancel")
+        
+        # Set dialog size
+        self.widget.setMinimumWidth(350)
+        
+    def get_value_type(self):
+        """Get the selected type"""
+        return self.type_combo.currentText()
+
+
+class ValueEditDialog(MessageBoxBase):
+    """Fluent Design dialog for editing plist values"""
+    
+    def __init__(self, parent, value_type, current_value):
+        super().__init__(parent)
+        self.value_type = value_type
+        self.current_value = current_value
+        
+        self.titleLabel = SubtitleLabel(f"Edit {value_type}")
+        self.value_label = BodyLabel(f"Enter new {value_type.lower()} value:")
+        
+        # Create appropriate input widget based on type
+        if value_type == "Boolean":
+            self.widget = CheckBox("Value")
+            self.widget.setChecked(current_value)
+        elif value_type == "Number":
+            self.widget = FluentSpinBox()
+            self.widget.setRange(-2147483648, 2147483647)
+            self.widget.setValue(current_value)
+        elif value_type == "String":
+            self.widget = LineEdit()
+            self.widget.setText(current_value)
+            self.widget.setClearButtonEnabled(True)
+        elif value_type == "Data":
+            self.widget = PlainTextEdit()
+            self.widget.setPlainText(current_value.hex())
+            self.widget.setMaximumHeight(150)
+        else:
+            self.widget = LineEdit()
+            self.widget.setText(str(current_value))
+            self.widget.setClearButtonEnabled(True)
+        
+        # Add widgets to dialog
+        self.viewLayout.addWidget(self.titleLabel)
+        self.viewLayout.addSpacing(10)
+        self.viewLayout.addWidget(self.value_label)
+        self.viewLayout.addWidget(self.widget)
+        
+        self.yesButton.setText("Save")
+        self.cancelButton.setText("Cancel")
+        
+        # Set dialog size
+        self.widget.setMinimumWidth(400)
+    
+    def get_value(self):
+        """Get the edited value"""
+        if self.value_type == "Boolean":
+            return self.widget.isChecked()
+        elif self.value_type == "Number":
+            return self.widget.value()
+        elif self.value_type == "String":
+            return self.widget.text()
+        elif self.value_type == "Data":
+            try:
+                return bytes.fromhex(self.widget.toPlainText().replace(" ", ""))
+            except (ValueError, AttributeError):
+                return self.current_value
+        else:
+            return self.widget.text()
 
 
 class PlistTreeWidget(TreeWidget):
@@ -81,79 +238,68 @@ class PlistTreeWidget(TreeWidget):
             menu.exec(self.viewport().mapToGlobal(position))
     
     def add_dict_key(self, dict_item):
-        """Add a new key to a dictionary"""
-        # Get key name from user
-        key_name, ok = QInputDialog.getText(
-            self, "Add Dictionary Key", "Enter key name:"
-        )
+        """Add a new key to a dictionary using Fluent Design dialog"""
+        # Get existing keys
+        existing_keys = [dict_item.child(i).text(0) for i in range(dict_item.childCount())]
         
-        if not ok or not key_name:
-            return
-        
-        # Check if key already exists
-        for i in range(dict_item.childCount()):
-            if dict_item.child(i).text(0) == key_name:
-                QMessageBox.warning(
-                    self, "Key Exists", 
-                    f"Key '{key_name}' already exists in this dictionary."
-                )
+        # Show custom dialog
+        dialog = AddDictKeyDialog(self, existing_keys)
+        if dialog.exec():
+            if not dialog.validate():
                 return
-        
-        # Select value type
-        items = ["String", "Number", "Boolean", "Dictionary", "Array", "Data"]
-        value_type, ok = QInputDialog.getItem(
-            self, "Select Value Type", "Select value type:", items, 0, False
-        )
-        
-        if not ok:
-            return
-        
-        # Create new item
-        new_item = QTreeWidgetItem(dict_item)
-        new_item.setText(0, key_name)
-        
-        # Set default value based on type
-        if value_type == "String":
-            new_item.setText(1, "String")
-            new_item.setText(2, "")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, "")
-        elif value_type == "Number":
-            new_item.setText(1, "Number")
-            new_item.setText(2, "0")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, 0)
-        elif value_type == "Boolean":
-            new_item.setText(1, "Boolean")
-            new_item.setText(2, "false")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, False)
-        elif value_type == "Dictionary":
-            new_item.setText(1, "Dictionary")
-            new_item.setText(2, "0 items")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, OrderedDict())
-        elif value_type == "Array":
-            new_item.setText(1, "Array")
-            new_item.setText(2, "0 items")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, [])
-        elif value_type == "Data":
-            new_item.setText(1, "Data")
-            new_item.setText(2, "")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, b"")
-        
-        dict_item.setExpanded(True)
-        
-        # Save state for undo
-        if self.editor_page:
-            self.editor_page.save_state()
+            
+            key_name, value_type = dialog.get_values()
+            
+            # Create new item
+            new_item = QTreeWidgetItem(dict_item)
+            new_item.setText(0, key_name)
+            
+            # Set default value based on type
+            if value_type == "String":
+                new_item.setText(1, "String")
+                new_item.setText(2, "")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, "")
+            elif value_type == "Number":
+                new_item.setText(1, "Number")
+                new_item.setText(2, "0")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, 0)
+            elif value_type == "Boolean":
+                new_item.setText(1, "Boolean")
+                new_item.setText(2, "false")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, False)
+            elif value_type == "Dictionary":
+                new_item.setText(1, "Dictionary")
+                new_item.setText(2, "0 items")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, OrderedDict())
+            elif value_type == "Array":
+                new_item.setText(1, "Array")
+                new_item.setText(2, "0 items")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, [])
+            elif value_type == "Data":
+                new_item.setText(1, "Data")
+                new_item.setText(2, "")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, b"")
+            
+            dict_item.setExpanded(True)
+            
+            # Save state for undo
+            if self.editor_page:
+                self.editor_page.save_state()
     
     def remove_dict_key(self, item):
-        """Remove a key from a dictionary"""
+        """Remove a key from a dictionary using Fluent Design confirmation"""
         key_name = item.text(0)
-        reply = QMessageBox.question(
-            self, "Remove Key", 
-            f"Are you sure you want to remove key '{key_name}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
         
-        if reply == QMessageBox.StandardButton.Yes:
+        # Create confirmation dialog
+        w = MessageBox(
+            "Remove Dictionary Key",
+            f"Are you sure you want to remove the key '{key_name}'?\n\nThis action can be undone.",
+            self
+        )
+        w.yesButton.setText("Remove")
+        w.cancelButton.setText("Cancel")
+        
+        if w.exec():
             parent = item.parent()
             if parent:
                 index = parent.indexOfChild(item)
@@ -162,50 +308,57 @@ class PlistTreeWidget(TreeWidget):
                 # Save state for undo
                 if self.editor_page:
                     self.editor_page.save_state()
+                    
+                # Show success message
+                InfoBar.success(
+                    title='Key Removed',
+                    content=f"Key '{key_name}' removed successfully",
+                    orient=Qt.Orientation.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP_RIGHT,
+                    duration=2000,
+                    parent=self
+                )
     
     def add_array_item(self, array_item):
-        """Add a new item to an array"""
-        # Create a dialog to select item type
-        items = ["String", "Number", "Boolean", "Dictionary", "Array"]
-        item_type, ok = QInputDialog.getItem(
-            self, "Add Item", "Select item type:", items, 0, False
-        )
-        
-        if not ok:
-            return
-        
-        # Create new item
-        index = array_item.childCount()
-        new_item = QTreeWidgetItem(array_item)
-        new_item.setText(0, f"Item {index}")
-        
-        # Set default value based on type
-        if item_type == "String":
-            new_item.setText(1, "String")
-            new_item.setText(2, "")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, "")
-        elif item_type == "Number":
-            new_item.setText(1, "Number")
-            new_item.setText(2, "0")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, 0)
-        elif item_type == "Boolean":
-            new_item.setText(1, "Boolean")
-            new_item.setText(2, "false")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, False)
-        elif item_type == "Dictionary":
-            new_item.setText(1, "Dictionary")
-            new_item.setText(2, "0 items")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, OrderedDict())
-        elif item_type == "Array":
-            new_item.setText(1, "Array")
-            new_item.setText(2, "0 items")
-            new_item.setData(2, Qt.ItemDataRole.UserRole, [])
-        
-        array_item.setExpanded(True)
-        
-        # Save state for undo
-        if self.editor_page:
-            self.editor_page.save_state()
+        """Add a new item to an array using Fluent Design dialog"""
+        # Show custom dialog
+        dialog = AddArrayItemDialog(self)
+        if dialog.exec():
+            item_type = dialog.get_value_type()
+            
+            # Create new item
+            index = array_item.childCount()
+            new_item = QTreeWidgetItem(array_item)
+            new_item.setText(0, f"Item {index}")
+            
+            # Set default value based on type
+            if item_type == "String":
+                new_item.setText(1, "String")
+                new_item.setText(2, "")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, "")
+            elif item_type == "Number":
+                new_item.setText(1, "Number")
+                new_item.setText(2, "0")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, 0)
+            elif item_type == "Boolean":
+                new_item.setText(1, "Boolean")
+                new_item.setText(2, "false")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, False)
+            elif item_type == "Dictionary":
+                new_item.setText(1, "Dictionary")
+                new_item.setText(2, "0 items")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, OrderedDict())
+            elif item_type == "Array":
+                new_item.setText(1, "Array")
+                new_item.setText(2, "0 items")
+                new_item.setData(2, Qt.ItemDataRole.UserRole, [])
+            
+            array_item.setExpanded(True)
+            
+            # Save state for undo
+            if self.editor_page:
+                self.editor_page.save_state()
     
     def remove_array_item(self, item):
         """Remove an item from an array"""
@@ -276,7 +429,7 @@ class PlistTreeWidget(TreeWidget):
             item.setData(2, Qt.ItemDataRole.UserRole, value)
     
     def edit_item(self, item, column):
-        """Edit item value when double-clicked"""
+        """Edit item value when double-clicked using Fluent Design dialog"""
         if column != 2:  # Only allow editing the value column
             return
             
@@ -288,7 +441,7 @@ class PlistTreeWidget(TreeWidget):
             return
             
         dialog = ValueEditDialog(self, item_type, current_value)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
+        if dialog.exec():
             new_value = dialog.get_value()
             item.setData(2, Qt.ItemDataRole.UserRole, new_value)
             self._set_item_value(item, new_value)
@@ -345,66 +498,6 @@ class PlistTreeWidget(TreeWidget):
             return item.data(2, Qt.ItemDataRole.UserRole)
 
 
-class ValueEditDialog(QDialog):
-    """Dialog for editing plist values"""
-    
-    def __init__(self, parent, value_type, current_value):
-        super().__init__(parent)
-        self.value_type = value_type
-        self.current_value = current_value
-        self.setWindowTitle(f"Edit {value_type}")
-        self.setMinimumWidth(400)
-        self.setup_ui()
-        
-    def setup_ui(self):
-        """Setup the dialog UI"""
-        layout = QVBoxLayout(self)
-        
-        label = QLabel(f"Edit {self.value_type} value:")
-        layout.addWidget(label)
-        
-        if self.value_type == "Boolean":
-            self.widget = QCheckBox("Value")
-            self.widget.setChecked(self.current_value)
-        elif self.value_type == "Number":
-            self.widget = QSpinBox()
-            self.widget.setRange(-2147483648, 2147483647)
-            self.widget.setValue(self.current_value)
-        elif self.value_type == "String":
-            self.widget = QLineEdit()
-            self.widget.setText(self.current_value)
-        elif self.value_type == "Data":
-            self.widget = QTextEdit()
-            self.widget.setPlainText(self.current_value.hex())
-            self.widget.setMaximumHeight(150)
-        else:
-            self.widget = QLineEdit()
-            self.widget.setText(str(self.current_value))
-            
-        layout.addWidget(self.widget)
-        
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
-    
-    def get_value(self):
-        """Get the edited value"""
-        if self.value_type == "Boolean":
-            return self.widget.isChecked()
-        elif self.value_type == "Number":
-            return self.widget.value()
-        elif self.value_type == "String":
-            return self.widget.text()
-        elif self.value_type == "Data":
-            try:
-                return bytes.fromhex(self.widget.toPlainText().replace(" ", ""))
-            except (ValueError, AttributeError):
-                return self.current_value
-        else:
-            return self.widget.text()
 
 
 class ConfigEditorPage(QWidget):
