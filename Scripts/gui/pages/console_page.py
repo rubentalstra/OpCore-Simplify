@@ -1,6 +1,5 @@
 """Console log page - elevated qfluentwidgets experience"""
 
-import re
 from datetime import datetime
 
 from PyQt6.QtCore import Qt
@@ -12,7 +11,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from PyQt6.QtGui import QCursor
 from qfluentwidgets import (
     BodyLabel,
     CardWidget,
@@ -28,7 +26,6 @@ from qfluentwidgets import (
     ScrollArea,
     CommandBar,
     Action,
-    RoundMenu,
 )
 
 from ..styles import COLORS, SPACING, RADIUS
@@ -214,13 +211,6 @@ class ConsolePage(ScrollArea):
         jump_action.setToolTip("Scroll to the bottom of the console")
         self.command_bar.addAction(jump_action)
         
-        # More options menu
-        self.command_bar.addSeparator()
-        more_action = Action(FluentIcon.MORE, "More")
-        more_action.triggered.connect(self._show_more_menu)
-        more_action.setToolTip("Additional options")
-        self.command_bar.addAction(more_action)
-        
         console_header.addWidget(self.command_bar)
         console_layout.addLayout(console_header)
 
@@ -335,59 +325,6 @@ class ConsolePage(ScrollArea):
     def scroll_to_bottom(self):
         scroll_bar = self.console_text.verticalScrollBar()
         scroll_bar.setValue(scroll_bar.maximum())
-    
-    def _show_more_menu(self):
-        """Show a menu with additional console options"""
-        menu = RoundMenu(parent=self.scrollWidget)
-        
-        # Select all action
-        select_all_action = Action(FluentIcon.SELECT_ALL, "Select All")
-        select_all_action.triggered.connect(self.console_text.selectAll)
-        menu.addAction(select_all_action)
-        
-        menu.addSeparator()
-        
-        # Font size actions
-        font_menu = RoundMenu("Font Size", self.scrollWidget)
-        font_menu.setIcon(FluentIcon.FONT)
-        
-        small_font_action = Action(FluentIcon.FONT, "Small (11px)")
-        small_font_action.triggered.connect(lambda: self._set_font_size(11))
-        font_menu.addAction(small_font_action)
-        
-        medium_font_action = Action(FluentIcon.FONT, "Medium (13px)")
-        medium_font_action.triggered.connect(lambda: self._set_font_size(13))
-        font_menu.addAction(medium_font_action)
-        
-        large_font_action = Action(FluentIcon.FONT, "Large (15px)")
-        large_font_action.triggered.connect(lambda: self._set_font_size(15))
-        font_menu.addAction(large_font_action)
-        
-        menu.addMenu(font_menu)
-        
-        menu.addSeparator()
-        
-        # Clear filters action
-        clear_filters_action = Action(FluentIcon.CANCEL, "Clear All Filters")
-        clear_filters_action.triggered.connect(self._clear_all_filters)
-        menu.addAction(clear_filters_action)
-        
-        # Show menu at cursor position
-        menu.exec(QCursor.pos())
-    
-    def _set_font_size(self, size: int):
-        """Set the console text font size"""
-        current_style = self.console_text.styleSheet()
-        # Replace font-size in stylesheet
-        new_style = re.sub(r'font-size:\s*\d+px;', f'font-size: {size}px;', current_style)
-        self.console_text.setStyleSheet(new_style)
-        self.controller.update_status(f"Console font size set to {size}px", 'success')
-    
-    def _clear_all_filters(self):
-        """Clear all active filters"""
-        self.level_filter.setCurrentText("All")
-        self.search_input.clear()
-        self.controller.update_status("All filters cleared", 'success')
 
     def refresh(self):
         """Allow parent controller to request a soft refresh."""
