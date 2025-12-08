@@ -85,43 +85,6 @@ class ConsolePage(ScrollArea):
 
         layout.addWidget(header_container)
 
-        # Statistics cards row
-        stats_row = QHBoxLayout()
-        stats_row.setSpacing(SPACING['medium'])
-
-        self.lines_value = StrongBodyLabel("0")
-        self.last_update_value = StrongBodyLabel("--")
-        self.filter_value = StrongBodyLabel("All")
-
-        # Total logs card
-        total_card = self._build_metric_card(
-            FluentIcon.DICTIONARY,
-            "Total Logs",
-            self.lines_value,
-            "All entries"
-        )
-        stats_row.addWidget(total_card)
-
-        # Last update card
-        update_card = self._build_metric_card(
-            FluentIcon.UPDATE,
-            "Last Update",
-            self.last_update_value,
-            "Latest entry time"
-        )
-        stats_row.addWidget(update_card)
-
-        # Filter status card
-        filter_card = self._build_metric_card(
-            FluentIcon.FILTER,
-            "Active Filter",
-            self.filter_value,
-            "Current view"
-        )
-        stats_row.addWidget(filter_card)
-
-        layout.addLayout(stats_row)
-
         # Filter and controls card
         controls_card = CardWidget()
         controls_layout = QVBoxLayout(controls_card)
@@ -272,42 +235,6 @@ class ConsolePage(ScrollArea):
         layout.addWidget(console_card)
         layout.addStretch()
 
-    def _build_metric_card(self, icon: FluentIcon, title: str, value_widget: StrongBodyLabel, caption: str) -> CardWidget:
-        """Build a metric card with icon, title, value, and caption"""
-        card = CardWidget()
-        card.setObjectName("consoleMetricCard")
-        
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(SPACING['medium'], SPACING['medium'], SPACING['medium'], SPACING['medium'])
-        layout.setSpacing(SPACING['small'])
-
-        # Icon and title row
-        header_row = QHBoxLayout()
-        header_row.setSpacing(SPACING['small'])
-        
-        from PyQt6.QtWidgets import QLabel
-        icon_label = QLabel()
-        icon_label.setPixmap(icon.icon(color=COLORS['primary']).pixmap(20, 20))
-        header_row.addWidget(icon_label)
-        
-        title_label = BodyLabel(title)
-        title_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
-        header_row.addWidget(title_label)
-        header_row.addStretch()
-        
-        layout.addLayout(header_row)
-
-        # Value
-        value_widget.setStyleSheet(f"color: {COLORS['text_primary']}; font-size: 24px; font-weight: bold;")
-        layout.addWidget(value_widget)
-
-        # Caption
-        caption_label = BodyLabel(caption)
-        caption_label.setStyleSheet(f"color: {COLORS['text_tertiary']}; font-size: 12px;")
-        layout.addWidget(caption_label)
-
-        return card
-
     def _build_toggle_container(self, title: str, description: str, switch: SwitchButton) -> CardWidget:
         """Build a toggle switch container with title and description"""
         container = CardWidget()
@@ -358,12 +285,8 @@ class ConsolePage(ScrollArea):
         self._update_metrics(len(filtered), level)
 
     def _update_metrics(self, visible_count: int, level: str):
-        """Update the metric displays"""
-        self.lines_value.setText(str(len(self._log_entries)))
-        self.last_update_value.setText(self._last_update_text)
-        self.filter_value.setText(level)
-        
-        # Update filter status label with more detail
+        """Update the filter status display"""
+        # Update filter status label with detailed information
         if len(self._log_entries) == 0:
             status_text = "No logs yet"
         elif visible_count == len(self._log_entries):
