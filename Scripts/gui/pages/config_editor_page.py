@@ -320,12 +320,13 @@ class PlistTreeWidget(TreeWidget):
     def remove_dict_key(self, item):
         """Remove a key from a dictionary using Fluent Design confirmation"""
         key_name = item.text(0)
+        item_type = item.text(1)
         
-        # Create confirmation dialog
+        # Create confirmation dialog with item type info
         # Parent to main window and make modal
         w = MessageBox(
             "Remove Dictionary Key",
-            f"Are you sure you want to remove the key '{key_name}'?\n\nThis action can be undone.",
+            f"Are you sure you want to remove the key '{key_name}' ({item_type})?\n\nThis action can be undone.",
             self.window()
         )
         w.setWindowModality(Qt.WindowModality.ApplicationModal)
@@ -345,7 +346,7 @@ class PlistTreeWidget(TreeWidget):
                 # Show success message
                 InfoBar.success(
                     title='Key Removed',
-                    content=f"Key '{key_name}' removed successfully",
+                    content=f"Key '{key_name}' ({item_type}) removed successfully",
                     orient=Qt.Orientation.Horizontal,
                     isClosable=True,
                     position=InfoBarPosition.TOP_RIGHT,
