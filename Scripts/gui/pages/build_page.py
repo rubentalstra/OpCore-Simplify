@@ -207,7 +207,7 @@ class BuildPage(ScrollArea):
         # Stats header
         stats_header_layout = QHBoxLayout()
         stats_header_layout.setSpacing(SPACING['medium'])
-        stats_icon = build_icon_label(FluentIcon.CHART, COLORS['primary'], size=28)
+        stats_icon = build_icon_label(FluentIcon.DEVELOPER_TOOLS, COLORS['primary'], size=28)
         stats_header_layout.addWidget(stats_icon)
         
         stats_title = SubtitleLabel("Build Statistics")
