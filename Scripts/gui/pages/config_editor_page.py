@@ -281,6 +281,14 @@ class ConfigEditorPage(QWidget):
         self.clean_snapshot_btn.setEnabled(False)
         toolbar_layout.addWidget(self.clean_snapshot_btn)
         
+        toolbar_layout.addSpacing(SPACING['medium'])
+        
+        # Validation button
+        self.validate_btn = PushButton(FluentIcon.ACCEPT, "Validate")
+        self.validate_btn.clicked.connect(self.validate_config)
+        self.validate_btn.setEnabled(False)
+        toolbar_layout.addWidget(self.validate_btn)
+        
         toolbar_layout.addStretch()
         
         # Current file label
@@ -367,6 +375,7 @@ class ConfigEditorPage(QWidget):
             self.save_as_btn.setEnabled(True)
             self.snapshot_btn.setEnabled(True)
             self.clean_snapshot_btn.setEnabled(True)
+            self.validate_btn.setEnabled(True)
             
             InfoBar.success(
                 title='Success',
@@ -757,3 +766,196 @@ class ConfigEditorPage(QWidget):
                 new_list.append(entry)
         
         tree_data["Misc"]["Tools"] = new_list
+    
+    def validate_config(self):
+        """Validate the loaded config.plist"""
+        if not self.plist_data:
+            MessageBox(
+                "No Config Loaded",
+                "Please load a config.plist file first.",
+                self
+            ).exec()
+            return
+        
+        # Get current tree data
+        tree_data = self.tree.get_tree_data()
+        
+        # Perform validation checks
+        issues = []
+        warnings = []
+        
+        # 1. Check required sections exist
+        required_sections = {
+            "ACPI": ["Add", "Delete", "Patch", "Quirks"],
+            "Booter": ["Quirks"],
+            "DeviceProperties": ["Add"],
+            "Kernel": ["Add", "Block", "Patch", "Quirks"],
+            "Misc": ["Boot", "Debug", "Security", "Tools"],
+            "NVRAM": ["Add", "Delete"],
+            "PlatformInfo": ["Generic"],
+            "UEFI": ["Drivers", "Input", "Output", "ProtocolOverrides", "Quirks"]
+        }
+        
+        for section, subsections in required_sections.items():
+            if section not in tree_data:
+                issues.append(f"Missing required section: {section}")
+            else:
+                for subsection in subsections:
+                    if subsection not in tree_data[section]:
+                        warnings.append(f"Missing recommended subsection: {section} -> {subsection}")
+        
+        # 2. Check path lengths (OC_STORAGE_SAFE_PATH_MAX = 128)
+        path_issues = self._check_path_lengths(tree_data)
+        if path_issues:
+            issues.extend(path_issues)
+        
+        # 3. Check for duplicate entries
+        duplicate_issues = self._check_duplicates(tree_data)
+        if duplicate_issues:
+            warnings.extend(duplicate_issues)
+        
+        # 4. Check kext dependencies
+        kext_issues = self._check_kext_order(tree_data)
+        if kext_issues:
+            warnings.extend(kext_issues)
+        
+        # Display validation results
+        if not issues and not warnings:
+            MessageBox(
+                "Validation Successful",
+                "✓ No issues found in config.plist\n\nYour configuration appears to be properly structured.",
+                self
+            ).exec()
+        else:
+            result_text = []
+            
+            if issues:
+                result_text.append("❌ ERRORS:\n")
+                for issue in issues:
+                    result_text.append(f"  • {issue}")
+                result_text.append("")
+            
+            if warnings:
+                result_text.append("⚠️  WARNINGS:\n")
+                for warning in warnings:
+                    result_text.append(f"  • {warning}")
+            
+            MessageBox(
+                "Validation Results",
+                "\n".join(result_text),
+                self
+            ).exec()
+    
+    def _check_path_lengths(self, tree_data):
+        """Check if any paths exceed OC_STORAGE_SAFE_PATH_MAX (128 chars)"""
+        issues = []
+        safe_path_length = 128
+        
+        # Check ACPI paths
+        if "ACPI" in tree_data and "Add" in tree_data["ACPI"]:
+            for entry in tree_data["ACPI"]["Add"]:
+                if isinstance(entry, dict) and "Path" in entry:
+                    if len(entry["Path"]) > safe_path_length - 1:
+                        issues.append(f"ACPI path too long ({len(entry['Path'])} chars): {entry['Path'][:50]}...")
+        
+        # Check Kernel/Kext paths
+        if "Kernel" in tree_data and "Add" in tree_data["Kernel"]:
+            for entry in tree_data["Kernel"]["Add"]:
+                if isinstance(entry, dict):
+                    bundle_path = entry.get("BundlePath", "")
+                    if len(bundle_path) > safe_path_length - 1:
+                        issues.append(f"Kext BundlePath too long ({len(bundle_path)} chars): {bundle_path[:50]}...")
+                    
+                    # Check combined paths for ExecutablePath and PlistPath
+                    if "ExecutablePath" in entry:
+                        combined = bundle_path + "\\" + entry["ExecutablePath"]
+                        if len(combined) > safe_path_length:
+                            issues.append(f"Kext ExecutablePath too long when combined ({len(combined)} chars): {entry.get('Comment', 'Unknown')}")
+                    
+                    if "PlistPath" in entry:
+                        combined = bundle_path + "\\" + entry["PlistPath"]
+                        if len(combined) > safe_path_length:
+                            issues.append(f"Kext PlistPath too long when combined ({len(combined)} chars): {entry.get('Comment', 'Unknown')}")
+        
+        # Check Driver paths
+        if "UEFI" in tree_data and "Drivers" in tree_data["UEFI"]:
+            for entry in tree_data["UEFI"]["Drivers"]:
+                path = entry.get("Path", "") if isinstance(entry, dict) else entry
+                if len(path) > safe_path_length - 1:
+                    issues.append(f"Driver path too long ({len(path)} chars): {path[:50]}...")
+        
+        # Check Tool paths
+        if "Misc" in tree_data and "Tools" in tree_data["Misc"]:
+            for entry in tree_data["Misc"]["Tools"]:
+                if isinstance(entry, dict) and "Path" in entry:
+                    if len(entry["Path"]) > safe_path_length - 1:
+                        issues.append(f"Tool path too long ({len(entry['Path'])} chars): {entry['Path'][:50]}...")
+        
+        return issues
+    
+    def _check_duplicates(self, tree_data):
+        """Check for duplicate entries"""
+        warnings = []
+        
+        # Check duplicate ACPI paths
+        if "ACPI" in tree_data and "Add" in tree_data["ACPI"]:
+            paths = [entry.get("Path", "").lower() for entry in tree_data["ACPI"]["Add"] if isinstance(entry, dict)]
+            duplicates = [p for p in set(paths) if paths.count(p) > 1]
+            if duplicates:
+                warnings.append(f"Duplicate ACPI paths found: {', '.join(duplicates)}")
+        
+        # Check duplicate Kext bundle paths
+        if "Kernel" in tree_data and "Add" in tree_data["Kernel"]:
+            bundles = [entry.get("BundlePath", "").lower() for entry in tree_data["Kernel"]["Add"] if isinstance(entry, dict)]
+            duplicates = [b for b in set(bundles) if bundles.count(b) > 1]
+            if duplicates:
+                warnings.append(f"Duplicate Kext bundle paths found: {', '.join(duplicates)}")
+        
+        return warnings
+    
+    def _check_kext_order(self, tree_data):
+        """Check if kext dependencies are in correct order"""
+        warnings = []
+        
+        if "Kernel" not in tree_data or "Add" not in tree_data["Kernel"]:
+            return warnings
+        
+        # Common kext dependencies
+        kext_dependencies = {
+            "VirtualSMC.kext": [],
+            "Lilu.kext": [],
+            "SMCProcessor.kext": ["VirtualSMC.kext"],
+            "SMCSuperIO.kext": ["VirtualSMC.kext"],
+            "SMCBatteryManager.kext": ["VirtualSMC.kext"],
+            "SMCLightSensor.kext": ["VirtualSMC.kext"],
+            "WhateverGreen.kext": ["Lilu.kext"],
+            "AppleALC.kext": ["Lilu.kext"],
+            "AirportBrcmFixup.kext": ["Lilu.kext"],
+            "IntelMausi.kext": [],
+            "NVMeFix.kext": [],
+            "RestrictEvents.kext": ["Lilu.kext"],
+            "BrightnessKeys.kext": ["VirtualSMC.kext"],
+            "CPUFriend.kext": ["Lilu.kext"],
+            "DebugEnhancer.kext": ["Lilu.kext"],
+            "FeatureUnlock.kext": ["Lilu.kext"],
+        }
+        
+        kexts = tree_data["Kernel"]["Add"]
+        kext_names = [os.path.basename(k.get("BundlePath", "")) for k in kexts if isinstance(k, dict)]
+        
+        for i, kext in enumerate(kexts):
+            if not isinstance(kext, dict):
+                continue
+            
+            kext_name = os.path.basename(kext.get("BundlePath", ""))
+            
+            if kext_name in kext_dependencies:
+                required_deps = kext_dependencies[kext_name]
+                for dep in required_deps:
+                    # Check if dependency exists and is before this kext
+                    if dep in kext_names:
+                        dep_index = kext_names.index(dep)
+                        if dep_index > i:
+                            warnings.append(f"Kext dependency order: {kext_name} should be loaded after {dep}")
+        
+        return warnings
