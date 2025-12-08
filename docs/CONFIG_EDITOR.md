@@ -7,6 +7,7 @@ A powerful TreeView-based editor for OpenCore config.plist files with OC Snapsho
 ### 1. Interactive TreeView Editor
 - **Fluent Design TreeView**: Modern hierarchical display with smooth animations and Fluent Design styling
 - **Auto-Expand**: Tree fully expands on file load for quick overview
+- **Modal Dialogs**: Properly modal dialogs that block interaction with main window during editing
 - **Fluent Design Dialogs**: Modern, beautiful dialogs for all editing operations with proper validation
 - **Type-aware Editing**: Edit values with appropriate Fluent controls:
   - Boolean: Fluent CheckBox

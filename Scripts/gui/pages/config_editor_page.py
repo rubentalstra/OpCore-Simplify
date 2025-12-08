@@ -11,13 +11,13 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog,
     QTreeWidgetItem, QLineEdit, QTreeWidgetItemIterator
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel, CardWidget,
     StrongBodyLabel, PrimaryPushButton, FluentIcon,
     InfoBar, InfoBarPosition, MessageBox, ComboBox as FluentComboBox,
     ToolButton, SearchLineEdit, TreeWidget, RoundMenu, CommandBar, Action,
-    MessageBoxBase, LineEdit, CheckBox, SpinBox as FluentSpinBox,
+    MessageBoxBase, LineEdit, SpinBox as FluentSpinBox,
     TextEdit, PlainTextEdit
 )
 
@@ -139,25 +139,32 @@ class ValueEditDialog(MessageBoxBase):
         self.current_value = current_value
         
         self.titleLabel = SubtitleLabel(f"Edit {value_type}")
-        self.value_label = BodyLabel(f"Enter new {value_type.lower()} value:")
         
         # Create appropriate input widget based on type
         if value_type == "Boolean":
-            self.widget = CheckBox("Value")
-            self.widget.setChecked(current_value)
+            self.value_label = BodyLabel("Select the boolean value:")
+            self.widget = FluentComboBox()
+            self.widget.addItems(["true", "false"])
+            self.widget.setCurrentText("true" if current_value else "false")
         elif value_type == "Number":
+            self.value_label = BodyLabel("Enter new number value:")
             self.widget = FluentSpinBox()
             self.widget.setRange(-2147483648, 2147483647)
             self.widget.setValue(current_value)
         elif value_type == "String":
+            self.value_label = BodyLabel("Enter new string value:")
             self.widget = LineEdit()
             self.widget.setText(current_value)
             self.widget.setClearButtonEnabled(True)
+            self.widget.setPlaceholderText("Enter text...")
         elif value_type == "Data":
+            self.value_label = BodyLabel("Enter hexadecimal data (without 0x prefix):")
             self.widget = PlainTextEdit()
             self.widget.setPlainText(current_value.hex())
             self.widget.setMaximumHeight(150)
+            self.widget.setPlaceholderText("Enter hex bytes (e.g., A1B2C3)...")
         else:
+            self.value_label = BodyLabel(f"Enter new {value_type.lower()} value:")
             self.widget = LineEdit()
             self.widget.setText(str(current_value))
             self.widget.setClearButtonEnabled(True)
@@ -177,7 +184,7 @@ class ValueEditDialog(MessageBoxBase):
     def get_value(self):
         """Get the edited value"""
         if self.value_type == "Boolean":
-            return self.widget.isChecked()
+            return self.widget.currentText() == "true"
         elif self.value_type == "Number":
             return self.widget.value()
         elif self.value_type == "String":
@@ -252,7 +259,9 @@ class PlistTreeWidget(TreeWidget):
         existing_keys = [dict_item.child(i).text(0) for i in range(dict_item.childCount())]
         
         # Show custom dialog (validation happens automatically)
-        dialog = AddDictKeyDialog(self, existing_keys)
+        # Parent to main window and make modal
+        dialog = AddDictKeyDialog(self.window(), existing_keys)
+        dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
         if dialog.exec():
             key_name, value_type = dialog.get_values()
             
@@ -297,11 +306,13 @@ class PlistTreeWidget(TreeWidget):
         key_name = item.text(0)
         
         # Create confirmation dialog
+        # Parent to main window and make modal
         w = MessageBox(
             "Remove Dictionary Key",
             f"Are you sure you want to remove the key '{key_name}'?\n\nThis action can be undone.",
-            self
+            self.window()
         )
+        w.setWindowModality(Qt.WindowModality.ApplicationModal)
         w.yesButton.setText("Remove")
         w.cancelButton.setText("Cancel")
         
@@ -323,13 +334,15 @@ class PlistTreeWidget(TreeWidget):
                     isClosable=True,
                     position=InfoBarPosition.TOP_RIGHT,
                     duration=2000,
-                    parent=self
+                    parent=self.window()
                 )
     
     def add_array_item(self, array_item):
         """Add a new item to an array using Fluent Design dialog"""
         # Show custom dialog
-        dialog = AddArrayItemDialog(self)
+        # Parent to main window and make modal
+        dialog = AddArrayItemDialog(self.window())
+        dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
         if dialog.exec():
             item_type = dialog.get_value_type()
             
@@ -445,8 +458,15 @@ class PlistTreeWidget(TreeWidget):
         # Don't allow editing containers
         if item_type in ("Dictionary", "Array"):
             return
-            
-        dialog = ValueEditDialog(self, item_type, current_value)
+        
+        # Use QTimer to defer dialog display to avoid QPainter conflicts
+        QTimer.singleShot(0, lambda: self._show_edit_dialog(item, item_type, current_value))
+    
+    def _show_edit_dialog(self, item, item_type, current_value):
+        """Show the edit dialog (called via QTimer to avoid paint conflicts)"""
+        # Parent to main window and make modal
+        dialog = ValueEditDialog(self.window(), item_type, current_value)
+        dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
         if dialog.exec():
             new_value = dialog.get_value()
             item.setData(2, Qt.ItemDataRole.UserRole, new_value)
