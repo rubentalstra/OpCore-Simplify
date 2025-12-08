@@ -655,6 +655,10 @@ class OpCoreGUI(FluentWindow):
                 self.update_status_signal.emit(
                     "OpenCore EFI built successfully!", 'success')
 
+                # Notify build page of successful completion
+                if hasattr(self, 'buildPage') and hasattr(self.buildPage, 'on_build_complete'):
+                    QTimer.singleShot(0, lambda: self.buildPage.on_build_complete(True))
+
                 # Show "Before Using EFI" dialog on main thread
                 QTimer.singleShot(0, self.show_before_using_efi_dialog)
 
@@ -663,10 +667,10 @@ class OpCoreGUI(FluentWindow):
                     f"Build failed: {str(e)}", 'error')
                 import traceback
                 print(traceback.format_exc())
-                # Re-enable build button on error
-                if self.build_btn:
-                    QTimer.singleShot(
-                        0, lambda: self.build_btn.setEnabled(True))
+                
+                # Notify build page of failure
+                if hasattr(self, 'buildPage') and hasattr(self.buildPage, 'on_build_complete'):
+                    QTimer.singleShot(0, lambda: self.buildPage.on_build_complete(False))
 
         thread = threading.Thread(target=build_thread, daemon=True)
         thread.start()
