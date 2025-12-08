@@ -175,6 +175,28 @@ You can manually edit values in the tree:
 - Drag-and-drop only works within the same parent (arrays)
 - Cannot rename dictionary keys directly (remove and re-add instead)
 
+## Code Refactoring (Version 5.0)
+
+### Optimizations Made
+
+The code has been refactored for better maintainability and reduced complexity:
+
+**Constants**: All magic numbers moved to constants (`MAX_UNDO_LEVELS`, `OC_STORAGE_SAFE_PATH_MAX`, `TYPE_DEFAULTS`)
+
+**Helper Methods**: Common operations extracted into reusable methods:
+- `_get_window()` - Get main window reference
+- `_show_info_bar()` - Centralized InfoBar display
+- `_create_default_value()` - Generate default values by type
+- `_snapshot_folder_generic()` - Unified folder scanning logic
+
+**Consolidated Snapshot Logic**: The 4 separate snapshot methods (`_snapshot_acpi`, `_snapshot_kexts`, `_snapshot_drivers`, `_snapshot_tools`) now use a shared `_snapshot_folder_generic()` method with configuration dictionaries, eliminating ~100 lines of duplicated code.
+
+**Benefits**:
+- Easier to maintain (change once, affect all)
+- Fewer bugs (less duplication)
+- Better organization
+- More extensible
+
 ## Technical Details
 
 ### Based on ProperTree

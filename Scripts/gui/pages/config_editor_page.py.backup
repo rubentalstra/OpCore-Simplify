@@ -25,21 +25,6 @@ from ..styles import COLORS, SPACING
 from ...datasets import kext_data
 
 
-# Constants
-MAX_UNDO_LEVELS = 50
-OC_STORAGE_SAFE_PATH_MAX = 128
-
-# Default values by type
-TYPE_DEFAULTS = {
-    "String": "",
-    "Number": 0,
-    "Boolean": False,
-    "Dictionary": OrderedDict(),
-    "Array": [],
-    "Data": b""
-}
-
-
 class AddDictKeyDialog(MessageBoxBase):
     """Fluent Design dialog for adding a dictionary key"""
     
@@ -577,36 +562,9 @@ class ConfigEditorPage(QWidget):
         # Undo/Redo stacks
         self.undo_stack = []
         self.redo_stack = []
-        self.max_undo_stack = MAX_UNDO_LEVELS  # Limit undo history
+        self.max_undo_stack = 50  # Limit undo history
         
         self.setup_ui()
-    
-    def _get_window(self):
-        """Get the main window"""
-        return self.window()
-    
-    def _show_info_bar(self, title, content, info_type="success", duration=2000):
-        """Show an info bar notification"""
-        info_func = {
-            "success": InfoBar.success,
-            "warning": InfoBar.warning,
-            "error": InfoBar.error,
-            "info": InfoBar.info
-        }.get(info_type, InfoBar.success)
-        
-        info_func(
-            title=title,
-            content=content,
-            orient=Qt.Orientation.Horizontal,
-            isClosable=True,
-            position=InfoBarPosition.TOP,
-            duration=duration,
-            parent=self._get_window()
-        )
-    
-    def _create_default_value(self, value_type):
-        """Create a default value for the given type"""
-        return TYPE_DEFAULTS.get(value_type, "")
     
     def save_state(self):
         """Save current tree state to undo stack"""
@@ -1073,65 +1031,43 @@ class ConfigEditorPage(QWidget):
     
     def _snapshot_acpi(self, tree_data, oc_acpi, clean):
         """Snapshot ACPI folder"""
-        config = {
-            "section": ["ACPI", "Add"],
-            "path_key": "Path",
-            "extensions": [".aml", ".bin"],
-            "template": lambda path: OrderedDict([
-                ("Comment", os.path.basename(path)),
-                ("Enabled", True),
-                ("Path", path)
-            ])
-        }
-        self._snapshot_folder_generic(tree_data, oc_acpi, clean, config)
-    
-    def _snapshot_folder_generic(self, tree_data, folder_path, clean, config):
-        """Generic folder snapshot logic"""
-        # Ensure section exists
-        section = config["section"]
-        current = tree_data
-        for key in section[:-1]:
-            if key not in current:
-                current[key] = OrderedDict()
-            current = current[key]
+        # Ensure ACPI->Add exists
+        if "ACPI" not in tree_data:
+            tree_data["ACPI"] = OrderedDict()
+        if "Add" not in tree_data["ACPI"]:
+            tree_data["ACPI"]["Add"] = []
         
-        if section[-1] not in current:
-            current[section[-1]] = []
-        
-        # Scan folder
-        new_items = []
-        for root, dirs, files in os.walk(folder_path):
+        # Scan ACPI folder
+        new_acpi = []
+        for root, dirs, files in os.walk(oc_acpi):
             for name in files:
-                if not name.startswith("."):
-                    ext_match = any(name.lower().endswith(ext) for ext in config["extensions"])
-                    if ext_match:
-                        full_path = os.path.join(root, name)
-                        rel_path = os.path.relpath(full_path, folder_path).replace("\\", "/")
-                        new_items.append(rel_path)
+                if not name.startswith(".") and name.lower().endswith((".aml", ".bin")):
+                    rel_path = os.path.relpath(os.path.join(root, name), oc_acpi)
+                    rel_path = rel_path.replace("\\", "/")
+                    new_acpi.append(rel_path)
         
-        # Build new list
-        existing = [] if clean else current[section[-1]]
-        path_key = config["path_key"]
-        existing_paths = [
-            x.get(path_key, "").lower() if isinstance(x, dict) else x.lower()
-            for x in existing
-        ]
+        # Build new ACPI list
+        add = [] if clean else tree_data["ACPI"]["Add"]
+        existing_paths = [x.get("Path", "").lower() for x in add if isinstance(x, dict)]
         
-        # Add new entries
-        for item_path in sorted(new_items, key=lambda x: x.lower()):
-            if item_path.lower() not in existing_paths:
-                new_entry = config["template"](item_path)
-                existing.append(new_entry)
+        for aml in sorted(new_acpi, key=lambda x: x.lower()):
+            if aml.lower() not in existing_paths:
+                # Add new entry
+                new_entry = OrderedDict([
+                    ("Comment", os.path.basename(aml)),
+                    ("Enabled", True),
+                    ("Path", aml)
+                ])
+                add.append(new_entry)
         
         # Remove entries that don't exist
-        new_items_lower = [x.lower() for x in new_items]
-        filtered = []
-        for entry in existing:
-            path = entry.get(path_key, "").lower() if isinstance(entry, dict) else entry.lower()
-            if path in new_items_lower:
-                filtered.append(entry)
+        new_add = []
+        new_acpi_lower = [x.lower() for x in new_acpi]
+        for entry in add:
+            if isinstance(entry, dict) and entry.get("Path", "").lower() in new_acpi_lower:
+                new_add.append(entry)
         
-        current[section[-1]] = filtered
+        tree_data["ACPI"]["Add"] = new_add
     
     def _snapshot_kexts(self, tree_data, oc_kexts, clean):
         """Snapshot Kexts folder"""
@@ -1221,42 +1157,97 @@ class ConfigEditorPage(QWidget):
     
     def _snapshot_drivers(self, tree_data, oc_drivers, clean):
         """Snapshot Drivers folder"""
-        config = {
-            "section": ["UEFI", "Drivers"],
-            "path_key": "Path",
-            "extensions": [".efi"],
-            "template": lambda path: OrderedDict([
-                ("Arguments", ""),
-                ("Comment", os.path.basename(path)),
-                ("Enabled", True),
-                ("LoadEarly", False),
-                ("Path", path)
-            ])
-        }
-        self._snapshot_folder_generic(tree_data, oc_drivers, clean, config)
+        # Ensure UEFI->Drivers exists
+        if "UEFI" not in tree_data:
+            tree_data["UEFI"] = OrderedDict()
+        if "Drivers" not in tree_data["UEFI"]:
+            tree_data["UEFI"]["Drivers"] = []
+        
+        # Scan drivers
+        new_drivers = []
+        for root, dirs, files in os.walk(oc_drivers):
+            for name in files:
+                if not name.startswith(".") and name.lower().endswith(".efi"):
+                    rel_path = os.path.relpath(os.path.join(root, name), oc_drivers)
+                    rel_path = rel_path.replace("\\", "/")
+                    new_drivers.append(rel_path)
+        
+        # Build new driver list
+        drivers = [] if clean else tree_data["UEFI"]["Drivers"]
+        existing_paths = [x.get("Path", "").lower() if isinstance(x, dict) else x.lower() for x in drivers]
+        
+        for driver in sorted(new_drivers, key=lambda x: x.lower()):
+            if driver.lower() not in existing_paths:
+                # Check if we need dict format (OC 0.6.0+) or string format
+                if drivers and isinstance(drivers[0], dict):
+                    new_entry = OrderedDict([
+                        ("Arguments", ""),
+                        ("Comment", os.path.basename(driver)),
+                        ("Enabled", True),
+                        ("LoadEarly", False),
+                        ("Path", driver)
+                    ])
+                    drivers.append(new_entry)
+                else:
+                    drivers.append(driver)
+        
+        # Remove entries that don't exist
+        new_drivers_lower = [x.lower() for x in new_drivers]
+        new_list = []
+        for entry in drivers:
+            path = entry.get("Path", "").lower() if isinstance(entry, dict) else entry.lower()
+            if path in new_drivers_lower:
+                new_list.append(entry)
+        
+        tree_data["UEFI"]["Drivers"] = new_list
     
     def _snapshot_tools(self, tree_data, oc_tools, clean):
         """Snapshot Tools folder"""
         if not os.path.isdir(oc_tools):
             return  # Tools folder is optional
         
-        config = {
-            "section": ["Misc", "Tools"],
-            "path_key": "Path",
-            "extensions": [".efi"],
-            "template": lambda path: OrderedDict([
-                ("Arguments", ""),
-                ("Auxiliary", True),
-                ("Comment", os.path.basename(path)),
-                ("Enabled", True),
-                ("Flavour", "Auto"),
-                ("FullNvramAccess", False),
-                ("Path", path),
-                ("RealPath", False),
-                ("TextMode", False)
-            ])
-        }
-        self._snapshot_folder_generic(tree_data, oc_tools, clean, config)
+        # Ensure Misc->Tools exists
+        if "Misc" not in tree_data:
+            tree_data["Misc"] = OrderedDict()
+        if "Tools" not in tree_data["Misc"]:
+            tree_data["Misc"]["Tools"] = []
+        
+        # Scan tools
+        new_tools = []
+        for root, dirs, files in os.walk(oc_tools):
+            for name in files:
+                if not name.startswith(".") and name.lower().endswith(".efi"):
+                    rel_path = os.path.relpath(os.path.join(root, name), oc_tools)
+                    rel_path = rel_path.replace("\\", "/")
+                    new_tools.append(rel_path)
+        
+        # Build new tools list
+        tools = [] if clean else tree_data["Misc"]["Tools"]
+        existing_paths = [x.get("Path", "").lower() for x in tools if isinstance(x, dict)]
+        
+        for tool in sorted(new_tools, key=lambda x: x.lower()):
+            if tool.lower() not in existing_paths:
+                new_entry = OrderedDict([
+                    ("Arguments", ""),
+                    ("Auxiliary", True),
+                    ("Comment", os.path.basename(tool)),
+                    ("Enabled", True),
+                    ("Flavour", "Auto"),
+                    ("FullNvramAccess", False),
+                    ("Path", tool),
+                    ("RealPath", False),
+                    ("TextMode", False)
+                ])
+                tools.append(new_entry)
+        
+        # Remove entries that don't exist
+        new_tools_lower = [x.lower() for x in new_tools]
+        new_list = []
+        for entry in tools:
+            if isinstance(entry, dict) and entry.get("Path", "").lower() in new_tools_lower:
+                new_list.append(entry)
+        
+        tree_data["Misc"]["Tools"] = new_list
     
     def validate_config(self):
         """Validate the loaded config.plist"""
@@ -1418,12 +1409,13 @@ class ConfigEditorPage(QWidget):
     def _check_path_lengths(self, tree_data):
         """Check if any paths exceed OC_STORAGE_SAFE_PATH_MAX (128 chars)"""
         issues = []
+        safe_path_length = 128
         
         # Check ACPI paths
         if "ACPI" in tree_data and "Add" in tree_data["ACPI"]:
             for entry in tree_data["ACPI"]["Add"]:
                 if isinstance(entry, dict) and "Path" in entry:
-                    if len(entry["Path"]) > OC_STORAGE_SAFE_PATH_MAX - 1:
+                    if len(entry["Path"]) > safe_path_length - 1:
                         issues.append(f"ACPI path too long ({len(entry['Path'])} chars): {entry['Path'][:50]}...")
         
         # Check Kernel/Kext paths
@@ -1431,32 +1423,32 @@ class ConfigEditorPage(QWidget):
             for entry in tree_data["Kernel"]["Add"]:
                 if isinstance(entry, dict):
                     bundle_path = entry.get("BundlePath", "")
-                    if len(bundle_path) > OC_STORAGE_SAFE_PATH_MAX - 1:
+                    if len(bundle_path) > safe_path_length - 1:
                         issues.append(f"Kext BundlePath too long ({len(bundle_path)} chars): {bundle_path[:50]}...")
                     
                     # Check combined paths for ExecutablePath and PlistPath
                     if "ExecutablePath" in entry:
                         combined = bundle_path + "/" + entry["ExecutablePath"]
-                        if len(combined) > OC_STORAGE_SAFE_PATH_MAX:
+                        if len(combined) > safe_path_length:
                             issues.append(f"Kext ExecutablePath too long when combined ({len(combined)} chars): {entry.get('Comment', 'Unknown')}")
                     
                     if "PlistPath" in entry:
                         combined = bundle_path + "/" + entry["PlistPath"]
-                        if len(combined) > OC_STORAGE_SAFE_PATH_MAX:
+                        if len(combined) > safe_path_length:
                             issues.append(f"Kext PlistPath too long when combined ({len(combined)} chars): {entry.get('Comment', 'Unknown')}")
         
         # Check Driver paths
         if "UEFI" in tree_data and "Drivers" in tree_data["UEFI"]:
             for entry in tree_data["UEFI"]["Drivers"]:
                 path = entry.get("Path", "") if isinstance(entry, dict) else entry
-                if len(path) > OC_STORAGE_SAFE_PATH_MAX - 1:
+                if len(path) > safe_path_length - 1:
                     issues.append(f"Driver path too long ({len(path)} chars): {path[:50]}...")
         
         # Check Tool paths
         if "Misc" in tree_data and "Tools" in tree_data["Misc"]:
             for entry in tree_data["Misc"]["Tools"]:
                 if isinstance(entry, dict) and "Path" in entry:
-                    if len(entry["Path"]) > OC_STORAGE_SAFE_PATH_MAX - 1:
+                    if len(entry["Path"]) > safe_path_length - 1:
                         issues.append(f"Tool path too long ({len(entry['Path'])} chars): {entry['Path'][:50]}...")
         
         return issues
