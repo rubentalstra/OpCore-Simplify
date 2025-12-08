@@ -310,17 +310,26 @@ class BuildPage(ScrollArea):
         
         # Update status with icon
         self.update_status_icon("building")
-        self.progress_label.setText("Initializing build process...")
+        self.progress_label.setText("Preparing to build...")
         self.progress_label.setStyleSheet(f"color: {COLORS['primary']};")
         
         # Hide success card and clear log
         self.success_card.setVisible(False)
+        self.instructions_after_build_card.setVisible(False)
         self.build_log.clear()
         
-        # Log start with separator
+        # Log start with enhanced header
         self.controller.log_message(LOG_SEPARATOR, to_console=False, to_build_log=True)
-        self.controller.log_message("Starting OpenCore EFI Build Process", to_console=False, to_build_log=True)
+        self.controller.log_message("🚀 OpenCore EFI Build Started", to_console=False, to_build_log=True)
         self.controller.log_message(LOG_SEPARATOR, to_console=False, to_build_log=True)
+        self.controller.log_message("", to_console=False, to_build_log=True)
+        
+        # Log build configuration
+        self.controller.log_message("Build Configuration:", to_console=False, to_build_log=True)
+        self.controller.log_message(f"  • macOS Version: {self.controller.macos_version_text}", to_console=False, to_build_log=True)
+        self.controller.log_message(f"  • SMBIOS Model: {self.controller.smbios_model_text}", to_console=False, to_build_log=True)
+        if self.controller.needs_oclp:
+            self.controller.log_message(f"  • OpenCore Legacy Patcher: Required", to_console=False, to_build_log=True)
         self.controller.log_message("", to_console=False, to_build_log=True)
 
         # Call controller build method
