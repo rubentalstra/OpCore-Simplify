@@ -9,25 +9,25 @@ from collections import OrderedDict
 from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog,
-    QTreeWidget, QTreeWidgetItem, QLineEdit, QDialog,
+    QTreeWidgetItem, QLineEdit, QDialog,
     QDialogButtonBox, QLabel, QCheckBox, QComboBox, QSpinBox,
-    QTextEdit, QMessageBox, QMenu, QInputDialog, QTreeWidgetItemIterator
+    QTextEdit, QMessageBox, QInputDialog, QTreeWidgetItemIterator
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QDrag
+from PyQt6.QtGui import QAction
 from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel, CardWidget,
     StrongBodyLabel, PrimaryPushButton, FluentIcon,
     InfoBar, InfoBarPosition, MessageBox, ComboBox as FluentComboBox,
-    ToolButton, SearchLineEdit
+    ToolButton, SearchLineEdit, TreeWidget, RoundMenu, CommandBar, Action
 )
 
 from ..styles import COLORS, SPACING
 from ...datasets import kext_data
 
 
-class PlistTreeWidget(QTreeWidget):
-    """Custom TreeWidget for displaying and editing plist data with drag-and-drop"""
+class PlistTreeWidget(TreeWidget):
+    """Custom TreeWidget for displaying and editing plist data with drag-and-drop using Fluent Design"""
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -36,7 +36,6 @@ class PlistTreeWidget(QTreeWidget):
         self.setColumnWidth(0, 300)
         self.setColumnWidth(1, 100)
         self.setColumnWidth(2, 400)
-        self.setAlternatingRowColors(True)
         self.itemDoubleClicked.connect(self.edit_item)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
@@ -44,26 +43,26 @@ class PlistTreeWidget(QTreeWidget):
         # Enable drag and drop
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
-        self.setDragDropMode(QTreeWidget.DragDropMode.InternalMove)
+        self.setDragDropMode(TreeWidget.DragDropMode.InternalMove)
         self.setDefaultDropAction(Qt.DropAction.MoveAction)
         
     def show_context_menu(self, position):
-        """Show context menu for tree items"""
+        """Show context menu for tree items using Fluent Design RoundMenu"""
         item = self.itemAt(position)
         if not item:
             return
         
-        menu = QMenu(self)
+        menu = RoundMenu(parent=self)
         item_type = item.text(1)
         
         # Add actions based on item type
         if item_type == "Array":
-            add_action = QAction("Add Item", self)
+            add_action = Action(FluentIcon.ADD, "Add Item")
             add_action.triggered.connect(lambda: self.add_array_item(item))
             menu.addAction(add_action)
         
         if item_type == "Dictionary":
-            add_key_action = QAction("Add Key", self)
+            add_key_action = Action(FluentIcon.ADD, "Add Key")
             add_key_action.triggered.connect(lambda: self.add_dict_key(item))
             menu.addAction(add_key_action)
         
@@ -71,11 +70,11 @@ class PlistTreeWidget(QTreeWidget):
         if item_type not in ("Dictionary", "Array") and item.parent():
             parent_type = item.parent().text(1)
             if parent_type == "Array":
-                remove_action = QAction("Remove Item", self)
+                remove_action = Action(FluentIcon.DELETE, "Remove Item")
                 remove_action.triggered.connect(lambda: self.remove_array_item(item))
                 menu.addAction(remove_action)
             elif parent_type == "Dictionary":
-                remove_key_action = QAction("Remove Key", self)
+                remove_key_action = Action(FluentIcon.DELETE, "Remove Key")
                 remove_key_action.triggered.connect(lambda: self.remove_dict_key(item))
                 menu.addAction(remove_key_action)
         
@@ -436,8 +435,8 @@ class ConfigEditorPage(QWidget):
         self.redo_stack.clear()  # Clear redo stack on new action
         
         # Update button states
-        self.undo_btn.setEnabled(True)
-        self.redo_btn.setEnabled(False)
+        self.undo_action.setEnabled(True)
+        self.redo_action.setEnabled(False)
     
     def undo(self):
         """Undo last change"""
@@ -454,8 +453,8 @@ class ConfigEditorPage(QWidget):
         self.tree.populate_tree(self.plist_data)
         
         # Update button states
-        self.undo_btn.setEnabled(len(self.undo_stack) > 0)
-        self.redo_btn.setEnabled(True)
+        self.undo_action.setEnabled(len(self.undo_stack) > 0)
+        self.redo_action.setEnabled(True)
         
         InfoBar.success(
             title='Undo',
@@ -482,8 +481,8 @@ class ConfigEditorPage(QWidget):
         self.tree.populate_tree(self.plist_data)
         
         # Update button states
-        self.undo_btn.setEnabled(True)
-        self.redo_btn.setEnabled(len(self.redo_stack) > 0)
+        self.undo_action.setEnabled(True)
+        self.redo_action.setEnabled(len(self.redo_stack) > 0)
         
         InfoBar.success(
             title='Redo',
@@ -512,68 +511,71 @@ class ConfigEditorPage(QWidget):
         
         layout.addSpacing(SPACING['medium'])
         
-        # Toolbar card
+        # Toolbar with CommandBar for modern Fluent Design look
         toolbar_card = CardWidget()
-        toolbar_layout = QHBoxLayout(toolbar_card)
+        toolbar_layout = QVBoxLayout(toolbar_card)
         toolbar_layout.setContentsMargins(SPACING['large'], SPACING['medium'],
                                          SPACING['large'], SPACING['medium'])
+        toolbar_layout.setSpacing(SPACING['small'])
+        
+        # CommandBar with primary actions
+        self.command_bar = CommandBar(self)
         
         # File operations
-        self.load_btn = PushButton(FluentIcon.FOLDER, "Load config.plist")
-        self.load_btn.clicked.connect(self.load_config)
-        toolbar_layout.addWidget(self.load_btn)
+        self.load_action = Action(FluentIcon.FOLDER, "Load")
+        self.load_action.triggered.connect(self.load_config)
+        self.command_bar.addAction(self.load_action)
         
-        self.save_btn = PushButton(FluentIcon.SAVE, "Save")
-        self.save_btn.clicked.connect(self.save_config)
-        self.save_btn.setEnabled(False)
-        toolbar_layout.addWidget(self.save_btn)
+        self.save_action = Action(FluentIcon.SAVE, "Save")
+        self.save_action.triggered.connect(self.save_config)
+        self.save_action.setEnabled(False)
+        self.command_bar.addAction(self.save_action)
         
-        self.save_as_btn = PushButton(FluentIcon.SAVE_AS, "Save As...")
-        self.save_as_btn.clicked.connect(self.save_config_as)
-        self.save_as_btn.setEnabled(False)
-        toolbar_layout.addWidget(self.save_as_btn)
+        self.save_as_action = Action(FluentIcon.SAVE_AS, "Save As")
+        self.save_as_action.triggered.connect(self.save_config_as)
+        self.save_as_action.setEnabled(False)
+        self.command_bar.addAction(self.save_as_action)
         
-        toolbar_layout.addSpacing(SPACING['medium'])
+        self.command_bar.addSeparator()
         
         # OC Snapshot operations
-        self.snapshot_btn = PrimaryPushButton(FluentIcon.SYNC, "OC Snapshot")
-        self.snapshot_btn.clicked.connect(self.oc_snapshot)
-        self.snapshot_btn.setEnabled(False)
-        toolbar_layout.addWidget(self.snapshot_btn)
+        self.snapshot_action = Action(FluentIcon.SYNC, "OC Snapshot")
+        self.snapshot_action.triggered.connect(self.oc_snapshot)
+        self.snapshot_action.setEnabled(False)
+        self.command_bar.addAction(self.snapshot_action)
         
-        self.clean_snapshot_btn = PushButton(FluentIcon.DELETE, "OC Clean Snapshot")
-        self.clean_snapshot_btn.clicked.connect(self.oc_clean_snapshot)
-        self.clean_snapshot_btn.setEnabled(False)
-        toolbar_layout.addWidget(self.clean_snapshot_btn)
+        self.clean_snapshot_action = Action(FluentIcon.DELETE, "Clean Snapshot")
+        self.clean_snapshot_action.triggered.connect(self.oc_clean_snapshot)
+        self.clean_snapshot_action.setEnabled(False)
+        self.command_bar.addAction(self.clean_snapshot_action)
         
-        toolbar_layout.addSpacing(SPACING['medium'])
+        self.command_bar.addSeparator()
         
-        # Undo/Redo buttons
-        self.undo_btn = PushButton(FluentIcon.RETURN, "Undo")
-        self.undo_btn.clicked.connect(self.undo)
-        self.undo_btn.setEnabled(False)
-        toolbar_layout.addWidget(self.undo_btn)
+        # Undo/Redo actions
+        self.undo_action = Action(FluentIcon.RETURN, "Undo")
+        self.undo_action.triggered.connect(self.undo)
+        self.undo_action.setEnabled(False)
+        self.command_bar.addAction(self.undo_action)
         
-        self.redo_btn = PushButton(FluentIcon.SYNC, "Redo")
-        self.redo_btn.clicked.connect(self.redo)
-        self.redo_btn.setEnabled(False)
-        toolbar_layout.addWidget(self.redo_btn)
+        self.redo_action = Action(FluentIcon.SYNC, "Redo")
+        self.redo_action.triggered.connect(self.redo)
+        self.redo_action.setEnabled(False)
+        self.command_bar.addAction(self.redo_action)
         
-        toolbar_layout.addSpacing(SPACING['medium'])
+        self.command_bar.addSeparator()
         
-        # Validation button
-        self.validate_btn = PushButton(FluentIcon.ACCEPT, "Validate")
-        self.validate_btn.clicked.connect(self.validate_config)
-        self.validate_btn.setEnabled(False)
-        toolbar_layout.addWidget(self.validate_btn)
+        # Validation actions
+        self.validate_action = Action(FluentIcon.ACCEPT, "Validate")
+        self.validate_action.triggered.connect(self.validate_config)
+        self.validate_action.setEnabled(False)
+        self.command_bar.addAction(self.validate_action)
         
-        # Export validation button
-        self.export_validation_btn = PushButton(FluentIcon.SAVE, "Export Validation")
-        self.export_validation_btn.clicked.connect(self.export_validation)
-        self.export_validation_btn.setEnabled(False)
-        toolbar_layout.addWidget(self.export_validation_btn)
+        self.export_validation_action = Action(FluentIcon.DOCUMENT, "Export Report")
+        self.export_validation_action.triggered.connect(self.export_validation)
+        self.export_validation_action.setEnabled(False)
+        self.command_bar.addAction(self.export_validation_action)
         
-        toolbar_layout.addStretch()
+        toolbar_layout.addWidget(self.command_bar)
         
         # Current file label
         self.file_label = BodyLabel("No file loaded")
@@ -689,18 +691,18 @@ class ConfigEditorPage(QWidget):
             # Clear undo/redo stacks on new file load
             self.undo_stack.clear()
             self.redo_stack.clear()
-            self.undo_btn.setEnabled(False)
-            self.redo_btn.setEnabled(False)
+            self.undo_action.setEnabled(False)
+            self.redo_action.setEnabled(False)
             
             # Save initial state
             self.save_state()
             
             # Enable buttons
-            self.save_btn.setEnabled(True)
-            self.save_as_btn.setEnabled(True)
-            self.snapshot_btn.setEnabled(True)
-            self.clean_snapshot_btn.setEnabled(True)
-            self.validate_btn.setEnabled(True)
+            self.save_action.setEnabled(True)
+            self.save_as_action.setEnabled(True)
+            self.snapshot_action.setEnabled(True)
+            self.clean_snapshot_action.setEnabled(True)
+            self.validate_action.setEnabled(True)
             
             InfoBar.success(
                 title='Success',
@@ -1161,7 +1163,7 @@ class ConfigEditorPage(QWidget):
         }
         
         # Enable export button if there are results
-        self.export_validation_btn.setEnabled(True)
+        self.export_validation_action.setEnabled(True)
         
         # Display validation results
         if not issues and not warnings:

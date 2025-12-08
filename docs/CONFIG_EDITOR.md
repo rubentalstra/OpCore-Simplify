@@ -1,11 +1,11 @@
 # Config.plist Editor
 
-A powerful TreeView-based editor for OpenCore config.plist files with OC Snapshot, validation, undo/redo, and advanced editing features.
+A powerful TreeView-based editor for OpenCore config.plist files with OC Snapshot, validation, undo/redo, and advanced editing features. Built with qfluentwidgets for modern Fluent Design UI/UX.
 
 ## Features
 
 ### 1. Interactive TreeView Editor
-- **Hierarchical Display**: View your config.plist in a clear, organized tree structure
+- **Fluent Design TreeView**: Modern hierarchical display with smooth animations and Fluent Design styling
 - **Type-aware Editing**: Edit values with appropriate controls:
   - Boolean: Checkbox
   - Number: Spin box with proper range
@@ -14,9 +14,10 @@ A powerful TreeView-based editor for OpenCore config.plist files with OC Snapsho
 - **Double-click to Edit**: Quick and intuitive editing workflow
 - **Real-time Updates**: Changes are immediately reflected in the tree
 - **Search Functionality**: Quickly find keys in your configuration
-- **Add/Remove Items**: Right-click context menu to add/remove array items and dictionary keys
+- **Fluent Context Menus**: Right-click to add/remove array items and dictionary keys with modern RoundMenu
 - **Drag-and-Drop**: Reorder items within arrays by dragging
 - **Undo/Redo**: Full undo/redo support with 50-level history
+- **CommandBar**: Modern command bar with all major operations accessible in one place
 
 ### 2. OC Snapshot
 Automatically scan your OpenCore EFI folder and update config.plist with discovered files:
@@ -205,7 +206,7 @@ Uses the comprehensive kext database from the OpenCore Simplify project, contain
 - Edit their child values instead
 
 **Q: How do I undo a mistake?**
-- Click the "Undo" button in the toolbar or press Ctrl+Z
+- Click the "Undo" action in the CommandBar or press Ctrl+Z
 - Up to 50 actions can be undone
 
 ## Recent Enhancements
@@ -216,12 +217,19 @@ Uses the comprehensive kext database from the OpenCore Simplify project, contain
 - ✅ Code duplication reduced - Now uses shared utils for file I/O
 - ✅ Removed unused dependencies - snapshot.plist no longer required
 
-**Version 3.0 Updates (Latest):**
+**Version 3.0 Updates:**
 - ✅ Add/remove dictionary keys - Full support for adding and removing keys
 - ✅ Drag-and-drop reordering - Reorder array items by dragging
 - ✅ Expanded kext dependency database - 83+ kexts with full dependency information
 - ✅ Undo/redo functionality - 50-level history with toolbar buttons
 - ✅ Export validation reports - Save validation results to JSON or text files
+
+**Version 4.0 Updates (Latest):**
+- ✅ Fluent Design UI - Migrated to qfluentwidgets TreeWidget for consistent modern UI
+- ✅ RoundMenu - Modern context menus with Fluent Design styling
+- ✅ CommandBar - Compact command bar with all operations in one place
+- ✅ Better visual consistency - Matches the Fluent Design system throughout the app
+- ✅ Smoother animations - Enhanced user experience with fluid transitions
 
 ## Future Enhancements
 
