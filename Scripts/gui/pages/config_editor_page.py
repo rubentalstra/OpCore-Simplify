@@ -396,20 +396,46 @@ class PlistTreeWidget(TreeWidget):
                 self.editor_page.save_state()
     
     def remove_array_item(self, item):
-        """Remove an item from an array"""
-        parent = item.parent()
-        if parent:
-            index = parent.indexOfChild(item)
-            parent.takeChild(index)
-            
-            # Renumber remaining items
-            for i in range(parent.childCount()):
-                child = parent.child(i)
-                child.setText(0, f"Item {i}")
-            
-            # Save state for undo
-            if self.editor_page:
-                self.editor_page.save_state()
+        """Remove an item from an array using Fluent Design confirmation"""
+        item_name = item.text(0)
+        item_type = item.text(1)
+        
+        # Create confirmation dialog
+        # Parent to main window and make modal
+        w = MessageBox(
+            "Remove Array Item",
+            f"Are you sure you want to remove '{item_name}' ({item_type})?\n\nThis action can be undone.",
+            self.window()
+        )
+        w.setWindowModality(Qt.WindowModality.ApplicationModal)
+        w.yesButton.setText("Remove")
+        w.cancelButton.setText("Cancel")
+        
+        if w.exec():
+            parent = item.parent()
+            if parent:
+                index = parent.indexOfChild(item)
+                parent.takeChild(index)
+                
+                # Renumber remaining items
+                for i in range(parent.childCount()):
+                    child = parent.child(i)
+                    child.setText(0, f"Item {i}")
+                
+                # Save state for undo
+                if self.editor_page:
+                    self.editor_page.save_state()
+                    
+                # Show success message
+                InfoBar.success(
+                    title='Item Removed',
+                    content=f"Array item '{item_name}' removed successfully",
+                    orient=Qt.Orientation.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP,
+                    duration=2000,
+                    parent=self.window()
+                )
         
     def populate_tree(self, data, parent=None):
         """Populate tree with plist data"""
