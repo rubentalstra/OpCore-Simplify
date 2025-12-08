@@ -3,8 +3,8 @@ Common UI utility functions and helper methods for OpCore Simplify GUI.
 This module provides reusable UI components and patterns used across pages.
 """
 
-from typing import Optional
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
+from typing import Optional, Tuple, Any
+from PyQt6.QtWidgets import QWidget, QLabel
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 from qfluentwidgets import FluentIcon, BodyLabel
@@ -70,7 +70,7 @@ def colored_icon(icon: FluentIcon, color_hex: str) -> FluentIcon:
     return icon.colored(tint, tint)
 
 
-def get_compatibility_icon(compat_tuple) -> FluentIcon:
+def get_compatibility_icon(compat_tuple: Optional[Tuple[Optional[str], Optional[str]]]) -> FluentIcon:
     """
     Get the appropriate FluentIcon based on compatibility status.
     
@@ -85,8 +85,14 @@ def get_compatibility_icon(compat_tuple) -> FluentIcon:
     return colored_icon(FluentIcon.ACCEPT, COLORS['success'])
 
 
-def add_group_with_indent(card, icon: FluentIcon, title: str, content: str, 
-                         widget: Optional[QWidget] = None, indent_level: int = 0):
+def add_group_with_indent(
+    card: Any,  # GroupHeaderCardWidget - using Any to avoid circular import
+    icon: FluentIcon, 
+    title: str, 
+    content: str, 
+    widget: Optional[QWidget] = None, 
+    indent_level: int = 0
+) -> Any:  # Returns CardGroupWidget
     """
     Add a group to a GroupHeaderCardWidget with optional indentation.
     This is a common pattern used across multiple pages.
@@ -100,7 +106,7 @@ def add_group_with_indent(card, icon: FluentIcon, title: str, content: str,
         indent_level: 0 for main items, 1+ for child items (each level adds 20px left margin)
         
     Returns:
-        The created CardGroupWidget
+        CardGroupWidget: The created group widget
     """
     if widget is None:
         widget = QWidget()

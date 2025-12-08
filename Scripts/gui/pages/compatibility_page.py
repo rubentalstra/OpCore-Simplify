@@ -4,16 +4,16 @@ Step 2: Compatibility checker - displays hardware compatibility information.
 
 import sys
 from pathlib import Path
-from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from PyQt6.QtCore import Qt
 from qfluentwidgets import (
-    SubtitleLabel, BodyLabel, ScrollArea, FluentIcon, GroupHeaderCardWidget, TitleLabel
+    SubtitleLabel, BodyLabel, ScrollArea, FluentIcon, 
+    GroupHeaderCardWidget, TitleLabel, StrongBodyLabel
 )
 
 from ...datasets import os_data, pci_data
 from ..styles import COLORS, SPACING
-from ..ui_utils import (create_info_widget, colored_icon, add_group_with_indent, 
-                        create_step_indicator, get_compatibility_icon)
+from ..ui_utils import create_info_widget, colored_icon, add_group_with_indent, create_step_indicator, get_compatibility_icon
 
 # Add Scripts directory to path for dataset imports
 scripts_path = Path(__file__).parent.parent.parent
@@ -81,7 +81,6 @@ class CompatibilityPage(ScrollArea):
         support_layout.setContentsMargins(0, 0, 0, 0)
         support_layout.setSpacing(SPACING['tiny'])
 
-        from qfluentwidgets import StrongBodyLabel
         support_title = StrongBodyLabel("macOS Support Range")
         support_title.setStyleSheet(
             f"color: {COLORS['primary']}; font-size: 13px;")

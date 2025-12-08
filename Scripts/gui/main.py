@@ -16,6 +16,7 @@ from qfluentwidgets import (
 )
 
 from ..datasets import os_data, mac_model_data
+from .models import HardwareReportState, MacOSVersionState, SMBIOSState, BuildState
 from .pages import (
     HomePage, UploadPage, CompatibilityPage, ConfigurationPage, 
     BuildPage, ConsolePage, SettingsPage, ConfigEditorPage
@@ -166,23 +167,16 @@ class OpCoreGUI(FluentWindow):
         self.init_navigation()
 
     def _init_state(self):
-        """Initialize application state variables."""
-        # Hardware report state
-        self.hardware_report_path = "Not selected"
-        self.macos_version_text = "Not selected"
-        self.macos_version = ""  # Darwin version format (e.g., "22.0.0")
-        self.smbios_model_text = "Not selected"
-        self.disabled_devices_text = "None"
-
-        # Data storage
-        self.hardware_report = None
-        self.hardware_report_data = None
-        self.customized_hardware = None
-        self.disabled_devices = None
-        self.native_macos_version = None
-        self.ocl_patched_macos_version = None
-        self.needs_oclp = False
-
+        """Initialize application state variables using dataclass models."""
+        # Use structured state management
+        self.hardware_state = HardwareReportState()
+        self.macos_state = MacOSVersionState()
+        self.smbios_state = SMBIOSState()
+        self.build_state = BuildState()
+        
+        # Backward compatibility properties (delegated to state objects)
+        # These will be removed in future versions
+        
         # Widget references (will be created by pages)
         self.build_btn = None
         self.progress_var = None
@@ -196,6 +190,126 @@ class OpCoreGUI(FluentWindow):
 
         # Console redirection flag
         self.console_redirected = False
+    
+    @property
+    def hardware_report_path(self) -> str:
+        """Get hardware report path."""
+        return self.hardware_state.path
+    
+    @hardware_report_path.setter
+    def hardware_report_path(self, value: str):
+        """Set hardware report path."""
+        self.hardware_state.path = value
+    
+    @property
+    def hardware_report(self):
+        """Get hardware report."""
+        return self.hardware_state.hardware_report
+    
+    @hardware_report.setter
+    def hardware_report(self, value):
+        """Set hardware report."""
+        self.hardware_state.hardware_report = value
+    
+    @property
+    def hardware_report_data(self):
+        """Get hardware report data."""
+        return self.hardware_state.data
+    
+    @hardware_report_data.setter
+    def hardware_report_data(self, value):
+        """Set hardware report data."""
+        self.hardware_state.data = value
+    
+    @property
+    def customized_hardware(self):
+        """Get customized hardware."""
+        return self.hardware_state.customized_hardware
+    
+    @customized_hardware.setter
+    def customized_hardware(self, value):
+        """Set customized hardware."""
+        self.hardware_state.customized_hardware = value
+    
+    @property
+    def disabled_devices(self):
+        """Get disabled devices."""
+        return self.hardware_state.disabled_devices
+    
+    @disabled_devices.setter
+    def disabled_devices(self, value):
+        """Set disabled devices."""
+        self.hardware_state.disabled_devices = value
+    
+    @property
+    def disabled_devices_text(self) -> str:
+        """Get disabled devices text."""
+        return self.hardware_state.disabled_devices_text
+    
+    @disabled_devices_text.setter
+    def disabled_devices_text(self, value: str):
+        """Set disabled devices text."""
+        self.hardware_state.disabled_devices_text = value
+    
+    @property
+    def macos_version_text(self) -> str:
+        """Get macOS version text."""
+        return self.macos_state.version_text
+    
+    @macos_version_text.setter
+    def macos_version_text(self, value: str):
+        """Set macOS version text."""
+        self.macos_state.version_text = value
+    
+    @property
+    def macos_version(self) -> str:
+        """Get macOS version (Darwin format)."""
+        return self.macos_state.version_darwin
+    
+    @macos_version.setter
+    def macos_version(self, value: str):
+        """Set macOS version (Darwin format)."""
+        self.macos_state.version_darwin = value
+    
+    @property
+    def native_macos_version(self):
+        """Get native macOS version."""
+        return self.macos_state.native_version
+    
+    @native_macos_version.setter
+    def native_macos_version(self, value):
+        """Set native macOS version."""
+        self.macos_state.native_version = value
+    
+    @property
+    def ocl_patched_macos_version(self):
+        """Get OCL patched macOS version."""
+        return self.macos_state.ocl_patched_version
+    
+    @ocl_patched_macos_version.setter
+    def ocl_patched_macos_version(self, value):
+        """Set OCL patched macOS version."""
+        self.macos_state.ocl_patched_version = value
+    
+    @property
+    def needs_oclp(self) -> bool:
+        """Get needs OCLP flag."""
+        return self.macos_state.needs_oclp
+    
+    @needs_oclp.setter
+    def needs_oclp(self, value: bool):
+        """Set needs OCLP flag."""
+        self.macos_state.needs_oclp = value
+    
+    @property
+    def smbios_model_text(self) -> str:
+        """Get SMBIOS model text."""
+        return self.smbios_state.model_text
+    
+    @smbios_model_text.setter
+    def smbios_model_text(self, value: str):
+        """Set SMBIOS model text."""
+        self.smbios_state.model_text = value
 
     def _setup_window(self):
         """Setup window properties and appearance."""
