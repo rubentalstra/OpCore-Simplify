@@ -184,7 +184,7 @@ The path length validation uses `OC_STORAGE_SAFE_PATH_MAX = 128` from OpenCorePk
 The editor preserves plist formatting and uses OrderedDict to maintain key order when saving.
 
 ### Kext Database
-Uses the comprehensive kext database from the OpCore Simplify project, containing 83+ kexts with full dependency information.
+Uses the comprehensive kext database from the OpenCore Simplify project, containing 83+ kexts with full dependency information.
 
 ## Troubleshooting
 

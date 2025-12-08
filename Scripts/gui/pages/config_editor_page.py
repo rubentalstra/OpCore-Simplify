@@ -31,6 +31,7 @@ class PlistTreeWidget(QTreeWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.editor_page = None  # Will be set by ConfigEditorPage
         self.setHeaderLabels(["Key", "Type", "Value"])
         self.setColumnWidth(0, 300)
         self.setColumnWidth(1, 100)
@@ -140,6 +141,10 @@ class PlistTreeWidget(QTreeWidget):
             new_item.setData(2, Qt.ItemDataRole.UserRole, b"")
         
         dict_item.setExpanded(True)
+        
+        # Save state for undo
+        if self.editor_page:
+            self.editor_page.save_state()
     
     def remove_dict_key(self, item):
         """Remove a key from a dictionary"""
@@ -155,6 +160,10 @@ class PlistTreeWidget(QTreeWidget):
             if parent:
                 index = parent.indexOfChild(item)
                 parent.takeChild(index)
+                
+                # Save state for undo
+                if self.editor_page:
+                    self.editor_page.save_state()
     
     def add_array_item(self, array_item):
         """Add a new item to an array"""
@@ -195,6 +204,10 @@ class PlistTreeWidget(QTreeWidget):
             new_item.setData(2, Qt.ItemDataRole.UserRole, [])
         
         array_item.setExpanded(True)
+        
+        # Save state for undo
+        if self.editor_page:
+            self.editor_page.save_state()
     
     def remove_array_item(self, item):
         """Remove an item from an array"""
@@ -207,6 +220,10 @@ class PlistTreeWidget(QTreeWidget):
             for i in range(parent.childCount()):
                 child = parent.child(i)
                 child.setText(0, f"Item {i}")
+            
+            # Save state for undo
+            if self.editor_page:
+                self.editor_page.save_state()
         
     def populate_tree(self, data, parent=None):
         """Populate tree with plist data"""
@@ -277,6 +294,10 @@ class PlistTreeWidget(QTreeWidget):
             new_value = dialog.get_value()
             item.setData(2, Qt.ItemDataRole.UserRole, new_value)
             self._set_item_value(item, new_value)
+            
+            # Save state for undo
+            if self.editor_page:
+                self.editor_page.save_state()
     
     def get_tree_data(self):
         """Extract data from tree back to dictionary/list format"""
@@ -591,6 +612,7 @@ class ConfigEditorPage(QWidget):
         
         # Tree widget
         self.tree = PlistTreeWidget()
+        self.tree.editor_page = self  # Set reference for undo functionality
         tree_layout.addWidget(self.tree)
         
         layout.addWidget(tree_card, 1)
