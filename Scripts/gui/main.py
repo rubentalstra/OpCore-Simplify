@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QFileDialog, QTextEdit
 )
-from PyQt6.QtCore import Qt, QSize, pyqtSignal, QObject, QTimer
+from PyQt6.QtCore import Qt, QSize, pyqtSignal, QObject
 from PyQt6.QtGui import QIcon, QFont
 from qfluentwidgets import (
     FluentWindow, NavigationItemPosition, FluentIcon,
@@ -111,6 +111,12 @@ class OpCoreGUI(FluentWindow):
     update_gathering_progress_signal = pyqtSignal(dict)  # progress_info dict
     # message, level, to_console, to_build_log
     log_message_signal = pyqtSignal(str, str, bool, bool)
+    # Signal for build completion with success status and bios_requirements
+    build_complete_signal = pyqtSignal(bool, object)  # success, bios_requirements
+    # Signal for loading hardware report
+    load_hardware_report_signal = pyqtSignal(str, object)  # report_path, report_data
+    # Signal for opening result folder
+    open_result_folder_signal = pyqtSignal(str)  # folder_path
 
     def __init__(self, ocpe_instance):
         """
@@ -187,6 +193,9 @@ class OpCoreGUI(FluentWindow):
         self.update_gathering_progress_signal.connect(
             self._update_gathering_progress_on_main_thread)
         self.log_message_signal.connect(self._log_message_on_main_thread)
+        self.build_complete_signal.connect(self._handle_build_complete)
+        self.load_hardware_report_signal.connect(self._handle_load_hardware_report)
+        self.open_result_folder_signal.connect(self._handle_open_result_folder)
 
         # Set up GUI handlers - using new direct handler approach
         self.ocpe.ac.gui_folder_callback = self.select_acpi_folder_gui
@@ -300,6 +309,19 @@ class OpCoreGUI(FluentWindow):
         if to_build_log and self.build_log:
             for line in lines:
                 self.build_log.append(line)
+
+    def _handle_build_complete(self, success, bios_requirements):
+        """Handle build completion signal on main thread"""
+        if hasattr(self, 'buildPage') and hasattr(self.buildPage, 'on_build_complete'):
+            self.buildPage.on_build_complete(success, bios_requirements)
+
+    def _handle_load_hardware_report(self, report_path, report_data):
+        """Handle hardware report loading signal on main thread"""
+        self.load_hardware_report(report_path, report_data)
+
+    def _handle_open_result_folder(self, folder_path):
+        """Handle opening result folder signal on main thread"""
+        self.ocpe.u.open_folder(folder_path)
 
     def _dispatch_backend_log(self, message, level="Info", to_build_log=False):
         """Callback passed to backend utils to surface logs in the GUI."""
@@ -602,9 +624,8 @@ class OpCoreGUI(FluentWindow):
                 report_data = self.ocpe.u.read_file(report_path)
                 self.ocpe.ac.read_acpi_tables(acpitables_dir)
 
-                # Load the report
-                QTimer.singleShot(0, lambda: self.load_hardware_report(
-                    report_path, report_data))
+                # Load the report using signal
+                self.load_hardware_report_signal.emit(report_path, report_data)
 
         thread = threading.Thread(target=export_thread, daemon=True)
         thread.start()
@@ -659,15 +680,14 @@ class OpCoreGUI(FluentWindow):
                 bios_requirements = self.ocpe.check_bios_requirements(
                     self.hardware_report_data, self.customized_hardware)
 
-                # Notify build page of successful completion with requirements
-                if hasattr(self, 'buildPage') and hasattr(self.buildPage, 'on_build_complete'):
-                    QTimer.singleShot(0, lambda: self.buildPage.on_build_complete(True, bios_requirements))
+                # Notify build page of successful completion with requirements using signal
+                self.build_complete_signal.emit(True, bios_requirements)
 
                 # Auto-open folder if setting is enabled (no dialog needed)
                 from Scripts.settings import Settings
                 settings = Settings()
                 if settings.get_open_folder_after_build():
-                    QTimer.singleShot(100, lambda: self.ocpe.u.open_folder(self.ocpe.result_dir))
+                    self.open_result_folder_signal.emit(self.ocpe.result_dir)
 
             except Exception as e:
                 self.update_status_signal.emit(
@@ -675,9 +695,8 @@ class OpCoreGUI(FluentWindow):
                 import traceback
                 print(traceback.format_exc())
                 
-                # Notify build page of failure
-                if hasattr(self, 'buildPage') and hasattr(self.buildPage, 'on_build_complete'):
-                    QTimer.singleShot(0, lambda: self.buildPage.on_build_complete(False))
+                # Notify build page of failure using signal
+                self.build_complete_signal.emit(False, None)
 
         thread = threading.Thread(target=build_thread, daemon=True)
         thread.start()
