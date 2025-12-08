@@ -14,7 +14,6 @@ from PyQt6.QtWidgets import (
     QTextEdit, QMessageBox, QInputDialog, QTreeWidgetItemIterator
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction
 from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel, CardWidget,
     StrongBodyLabel, PrimaryPushButton, FluentIcon,
