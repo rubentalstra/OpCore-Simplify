@@ -99,14 +99,6 @@ class BuildPage(ScrollArea):
         
         instructions_card.addGroup(FluentIcon.INFO, "Build Process", "What happens during the build", instructions_content)
         
-        # Style the instructions card
-        instructions_card.card.setStyleSheet(f"""
-            CardWidget {{
-                background-color: {COLORS['note_bg']};
-                border: 1px solid rgba(21, 101, 192, 0.15);
-            }}
-        """)
-        
         layout.addWidget(instructions_card)
 
         # Build control card using GroupHeaderCardWidget  
@@ -259,14 +251,6 @@ class BuildPage(ScrollArea):
         self.success_card.addGroup(FluentIcon.COMPLETED, "Success", "Your EFI is ready!", success_content)
         self.controller.open_result_btn = self.open_result_btn
         
-        # Style the success card
-        self.success_card.card.setStyleSheet(f"""
-            CardWidget {{
-                background-color: {COLORS['success_bg']};
-                border: 1px solid rgba(16, 124, 16, 0.2);
-            }}
-        """)
-        
         self.success_card.setVisible(False)
         layout.addWidget(self.success_card)
 
@@ -299,14 +283,6 @@ class BuildPage(ScrollArea):
         instructions_after_container_layout.addWidget(self.instructions_after_content)
         
         self.instructions_after_build_card.addGroup(FluentIcon.IMPORTANT, "Post-Build Steps", "Follow these steps before using your EFI", instructions_after_container)
-        
-        # Style the warning card
-        self.instructions_after_build_card.card.setStyleSheet(f"""
-            CardWidget {{
-                background-color: {COLORS['warning_bg']};
-                border: 1px solid rgba(245, 124, 0, 0.25);
-            }}
-        """)
         
         self.instructions_after_build_card.setVisible(False)
         layout.addWidget(self.instructions_after_build_card)
