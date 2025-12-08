@@ -4,8 +4,6 @@ Config.plist Editor Page - TreeView-based plist editor with OC Snapshot function
 
 import os
 import plistlib
-import hashlib
-import shutil
 from collections import OrderedDict
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog,
@@ -13,8 +11,7 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox, QLabel, QCheckBox, QComboBox, QSpinBox,
     QTextEdit, QMessageBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt
 from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel, CardWidget,
     StrongBodyLabel, PrimaryPushButton, FluentIcon,
@@ -211,7 +208,7 @@ class ValueEditDialog(QDialog):
         elif self.value_type == "Data":
             try:
                 return bytes.fromhex(self.widget.toPlainText().replace(" ", ""))
-            except:
+            except (ValueError, AttributeError):
                 return self.current_value
         else:
             return self.widget.text()
@@ -868,12 +865,12 @@ class ConfigEditorPage(QWidget):
                     
                     # Check combined paths for ExecutablePath and PlistPath
                     if "ExecutablePath" in entry:
-                        combined = bundle_path + "\\" + entry["ExecutablePath"]
+                        combined = bundle_path + "/" + entry["ExecutablePath"]
                         if len(combined) > safe_path_length:
                             issues.append(f"Kext ExecutablePath too long when combined ({len(combined)} chars): {entry.get('Comment', 'Unknown')}")
                     
                     if "PlistPath" in entry:
-                        combined = bundle_path + "\\" + entry["PlistPath"]
+                        combined = bundle_path + "/" + entry["PlistPath"]
                         if len(combined) > safe_path_length:
                             issues.append(f"Kext PlistPath too long when combined ({len(combined)} chars): {entry.get('Comment', 'Unknown')}")
         
