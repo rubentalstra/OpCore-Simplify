@@ -7,10 +7,13 @@ from PyQt6.QtCore import Qt
 from qfluentwidgets import (
     PushButton, SubtitleLabel, BodyLabel, CardWidget, TextEdit,
     StrongBodyLabel, ProgressBar, PrimaryPushButton, FluentIcon,
-    ScrollArea, InfoBar, InfoBarPosition, GroupHeaderCardWidget
+    ScrollArea, InfoBar, InfoBarPosition
 )
 
 from ..styles import COLORS, SPACING, RADIUS
+
+# Constants for build log formatting
+LOG_SEPARATOR = "═" * 60
 
 
 def build_icon_label(icon, color, size=32):
@@ -97,7 +100,7 @@ class BuildPage(ScrollArea):
             "This process may take a few minutes depending on your internet connection."
         )
         instructions_body.setWordWrap(True)
-        instructions_body.setStyleSheet("color: #424242; line-height: 1.6;")
+        instructions_body.setStyleSheet(f"color: {COLORS['text_secondary']}; line-height: 1.6;")
         instructions_text_layout.addWidget(instructions_body)
 
         instructions_layout.addLayout(instructions_text_layout)
@@ -266,10 +269,10 @@ class BuildPage(ScrollArea):
         self.success_card.setVisible(False)
         self.build_log.clear()
         
-        # Log start
-        self.controller.log_message("═" * 60, to_console=False, to_build_log=True)
+        # Log start with separator
+        self.controller.log_message(LOG_SEPARATOR, to_console=False, to_build_log=True)
         self.controller.log_message("Starting OpenCore EFI Build Process", to_console=False, to_build_log=True)
-        self.controller.log_message("═" * 60, to_console=False, to_build_log=True)
+        self.controller.log_message(LOG_SEPARATOR, to_console=False, to_build_log=True)
         self.controller.log_message("", to_console=False, to_build_log=True)
 
         # Call controller build method
@@ -309,9 +312,9 @@ class BuildPage(ScrollArea):
             
             # Log completion
             self.controller.log_message("", to_console=False, to_build_log=True)
-            self.controller.log_message("═" * 60, to_console=False, to_build_log=True)
+            self.controller.log_message(LOG_SEPARATOR, to_console=False, to_build_log=True)
             self.controller.log_message("✓ Build Completed Successfully!", to_console=False, to_build_log=True)
-            self.controller.log_message("═" * 60, to_console=False, to_build_log=True)
+            self.controller.log_message(LOG_SEPARATOR, to_console=False, to_build_log=True)
             
             # Show success notification
             InfoBar.success(
@@ -338,9 +341,9 @@ class BuildPage(ScrollArea):
             
             # Log error
             self.controller.log_message("", to_console=False, to_build_log=True)
-            self.controller.log_message("═" * 60, to_console=False, to_build_log=True)
+            self.controller.log_message(LOG_SEPARATOR, to_console=False, to_build_log=True)
             self.controller.log_message("✗ Build Failed", to_console=False, to_build_log=True)
-            self.controller.log_message("═" * 60, to_console=False, to_build_log=True)
+            self.controller.log_message(LOG_SEPARATOR, to_console=False, to_build_log=True)
             
             # Show error notification
             InfoBar.error(
@@ -387,5 +390,7 @@ class BuildPage(ScrollArea):
                 self.progress_container.setVisible(True)
             else:
                 self.success_card.setVisible(False)
-                if not self.build_log.toPlainText() or self.build_log.toPlainText() == "Build log will appear here...":
+                # Check if log has meaningful content
+                log_text = self.build_log.toPlainText()
+                if not log_text or log_text == "Build log will appear here...":
                     self.progress_container.setVisible(False)
