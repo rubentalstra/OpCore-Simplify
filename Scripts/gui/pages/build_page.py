@@ -14,6 +14,7 @@ from ..styles import COLORS, SPACING, RADIUS
 
 # Constants for build log formatting
 LOG_SEPARATOR = "═" * 60
+DEFAULT_LOG_TEXT = "Build log will appear here..."
 
 
 def build_icon_label(icon, color, size=32):
@@ -174,7 +175,7 @@ class BuildPage(ScrollArea):
         # Build log text area
         self.build_log = TextEdit()
         self.build_log.setReadOnly(True)
-        self.build_log.setPlainText("Build log will appear here...")
+        self.build_log.setPlainText(DEFAULT_LOG_TEXT)
         self.build_log.setMinimumHeight(300)
         self.controller.build_log = self.build_log
         log_layout.addWidget(self.build_log)
@@ -185,7 +186,7 @@ class BuildPage(ScrollArea):
         self.success_card = CardWidget()
         self.success_card.setStyleSheet(f"""
             CardWidget {{
-                background-color: #F3FAF3;
+                background-color: {COLORS['success_bg']};
                 border: 1px solid rgba(16, 124, 16, 0.2);
                 border-radius: {RADIUS['card']}px;
             }}
@@ -392,5 +393,5 @@ class BuildPage(ScrollArea):
                 self.success_card.setVisible(False)
                 # Check if log has meaningful content
                 log_text = self.build_log.toPlainText()
-                if not log_text or log_text == "Build log will appear here...":
+                if not log_text or log_text == DEFAULT_LOG_TEXT:
                     self.progress_container.setVisible(False)
