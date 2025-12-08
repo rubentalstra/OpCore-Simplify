@@ -395,7 +395,7 @@ class ConfigEditorPage(QWidget):
         
         tree_layout.addLayout(header_layout)
         
-        help_label = BodyLabel("Double-click values to edit • Right-click arrays to add/remove items • OC Snapshot syncs files")
+        help_label = BodyLabel("Double-click to edit • Right-click arrays to add/remove • Search to filter")
         help_label.setStyleSheet(f"color: {COLORS['text_tertiary']}; font-size: 12px;")
         tree_layout.addWidget(help_label)
         
@@ -467,7 +467,10 @@ class ConfigEditorPage(QWidget):
             self.plist_data = self.controller.ocpe.u.read_file(file_path)
             
             if self.plist_data is None:
-                raise Exception("Failed to read file")
+                raise FileNotFoundError(f"Could not read file: {file_path}")
+            
+            if not isinstance(self.plist_data, dict):
+                raise ValueError("Invalid plist format: root element must be a dictionary")
             
             self.current_file = file_path
             self.tree.populate_tree(self.plist_data)
@@ -490,6 +493,12 @@ class ConfigEditorPage(QWidget):
                 parent=self
             )
             
+        except (FileNotFoundError, ValueError) as e:
+            MessageBox(
+                "Error Loading File",
+                str(e),
+                self
+            ).exec()
         except Exception as e:
             MessageBox(
                 "Error Loading File",
