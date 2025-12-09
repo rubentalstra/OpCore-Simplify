@@ -31,6 +31,9 @@ scripts_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if scripts_path not in sys.path:
     sys.path.insert(0, scripts_path)
 
+# Import CompatibilityError for exception handling
+from Scripts.compatibility_checker import CompatibilityError
+
 # Constants
 WINDOW_MIN_SIZE = (1000, 700)
 WINDOW_DEFAULT_SIZE = (1200, 800)
@@ -656,18 +659,37 @@ class OpCoreGUI(FluentWindow):
 
         self.hardware_report_data = data
 
-        # Run compatibility check
-        self.hardware_report, self.native_macos_version, self.ocl_patched_macos_version = \
-            self.ocpe.c.check_compatibility(data)
+        try:
+            # Run compatibility check
+            self.hardware_report, self.native_macos_version, self.ocl_patched_macos_version = \
+                self.ocpe.c.check_compatibility(data)
 
-        # Auto select macOS version
-        self.auto_select_macos_version()
+            # Auto select macOS version
+            self.auto_select_macos_version()
 
-        # Update UI
-        self.uploadPage.update_status()
-        self.compatibilityPage.update_display()
+            # Update UI
+            self.uploadPage.update_status()
+            self.compatibilityPage.update_display()
 
-        self.update_status("Hardware report loaded successfully", 'success')
+            self.update_status("Hardware report loaded successfully", 'success')
+        
+        except CompatibilityError as e:
+            # Handle compatibility errors gracefully in GUI mode
+            InfoBar.error(
+                title='Hardware Compatibility Issue',
+                content=str(e),
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP_RIGHT,
+                duration=10000,
+                parent=self
+            )
+            # Reset to previous state
+            self.hardware_report_path = "Not selected"
+            self.hardware_report_data = None
+            self.hardware_report = None
+            self.uploadPage.update_status()
+            self.update_status("Hardware report has compatibility issues", 'error')
 
     def auto_select_macos_version(self):
         """Auto-select recommended macOS version"""
