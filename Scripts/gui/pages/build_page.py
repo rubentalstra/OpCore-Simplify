@@ -44,7 +44,6 @@ class BuildPage(ScrollArea):
         self.build_step_cards = []
         self.log_entries = []
         self.build_start_time = None
-        self.stats_timer = None
         
         # Visual build component tracking
         self.download_cards = {}  # Component name -> card widget
@@ -196,104 +195,6 @@ class BuildPage(ScrollArea):
         build_control_layout.addWidget(self.progress_container)
         layout.addWidget(build_control_card)
 
-        # Build Statistics Card (initially hidden)
-        self.stats_card = CardWidget(self.scrollWidget)
-        self.stats_card.setBorderRadius(RADIUS['card'])
-        stats_card_layout = QVBoxLayout(self.stats_card)
-        stats_card_layout.setContentsMargins(SPACING['large'], SPACING['large'],
-                                             SPACING['large'], SPACING['large'])
-        stats_card_layout.setSpacing(SPACING['medium'])
-        
-        # Stats header
-        stats_header_layout = QHBoxLayout()
-        stats_header_layout.setSpacing(SPACING['medium'])
-        stats_icon = build_icon_label(FluentIcon.DEVELOPER_TOOLS, COLORS['primary'], size=28)
-        stats_header_layout.addWidget(stats_icon)
-        
-        stats_title = SubtitleLabel("Build Statistics")
-        stats_title.setStyleSheet(f"color: {COLORS['text_primary']}; font-weight: 600;")
-        stats_header_layout.addWidget(stats_title)
-        stats_header_layout.addStretch()
-        stats_card_layout.addLayout(stats_header_layout)
-        
-        # Statistics grid
-        stats_grid = QGridLayout()
-        stats_grid.setSpacing(SPACING['large'])
-        stats_grid.setContentsMargins(0, SPACING['small'], 0, 0)
-        
-        # Elapsed time
-        time_widget = QWidget()
-        time_layout = QVBoxLayout(time_widget)
-        time_layout.setContentsMargins(SPACING['medium'], SPACING['medium'], 
-                                       SPACING['medium'], SPACING['medium'])
-        time_layout.setSpacing(SPACING['tiny'])
-        time_icon = build_icon_label(FluentIcon.HISTORY, COLORS['info'], size=20)
-        time_layout.addWidget(time_icon, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.elapsed_time_label = SubtitleLabel("0s")
-        self.elapsed_time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        time_layout.addWidget(self.elapsed_time_label)
-        time_caption = CaptionLabel("Elapsed Time")
-        time_caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        time_caption.setStyleSheet(f"color: {COLORS['text_secondary']};")
-        time_layout.addWidget(time_caption)
-        time_widget.setStyleSheet(f"""
-            QWidget {{
-                background-color: rgba(0, 120, 212, 0.05);
-                border-radius: {RADIUS['small']}px;
-            }}
-        """)
-        stats_grid.addWidget(time_widget, 0, 0)
-        
-        # Files downloaded
-        files_widget = QWidget()
-        files_layout = QVBoxLayout(files_widget)
-        files_layout.setContentsMargins(SPACING['medium'], SPACING['medium'], 
-                                        SPACING['medium'], SPACING['medium'])
-        files_layout.setSpacing(SPACING['tiny'])
-        files_icon = build_icon_label(FluentIcon.DOWNLOAD, COLORS['success'], size=20)
-        files_layout.addWidget(files_icon, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.files_count_label = SubtitleLabel("0")
-        self.files_count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        files_layout.addWidget(self.files_count_label)
-        files_caption = CaptionLabel("Files Downloaded")
-        files_caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        files_caption.setStyleSheet(f"color: {COLORS['text_secondary']};")
-        files_layout.addWidget(files_caption)
-        files_widget.setStyleSheet(f"""
-            QWidget {{
-                background-color: rgba(16, 124, 16, 0.05);
-                border-radius: {RADIUS['small']}px;
-            }}
-        """)
-        stats_grid.addWidget(files_widget, 0, 1)
-        
-        # Current phase
-        phase_widget = QWidget()
-        phase_layout = QVBoxLayout(phase_widget)
-        phase_layout.setContentsMargins(SPACING['medium'], SPACING['medium'], 
-                                        SPACING['medium'], SPACING['medium'])
-        phase_layout.setSpacing(SPACING['tiny'])
-        phase_icon = build_icon_label(FluentIcon.TAG, COLORS['warning'], size=20)
-        phase_layout.addWidget(phase_icon, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.current_phase_label = SubtitleLabel("Preparing")
-        self.current_phase_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        phase_layout.addWidget(self.current_phase_label)
-        phase_caption = CaptionLabel("Current Phase")
-        phase_caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        phase_caption.setStyleSheet(f"color: {COLORS['text_secondary']};")
-        phase_layout.addWidget(phase_caption)
-        phase_widget.setStyleSheet(f"""
-            QWidget {{
-                background-color: rgba(255, 140, 0, 0.05);
-                border-radius: {RADIUS['small']}px;
-            }}
-        """)
-        stats_grid.addWidget(phase_widget, 0, 2)
-        
-        stats_card_layout.addLayout(stats_grid)
-        self.stats_card.setVisible(False)
-        layout.addWidget(self.stats_card)
-
         # Live Build Activity Card (initially hidden) - ENHANCED LOG DISPLAY
         self.activity_card = CardWidget(self.scrollWidget)
         self.activity_card.setBorderRadius(RADIUS['card'])
@@ -302,37 +203,17 @@ class BuildPage(ScrollArea):
                                                 SPACING['large'], SPACING['large'])
         activity_card_layout.setSpacing(SPACING['medium'])
         
-        # Activity header with toggle
+        # Activity header - simplified
         activity_header_layout = QHBoxLayout()
         activity_header_layout.setSpacing(SPACING['medium'])
-        activity_icon = build_icon_label(FluentIcon.SYNC, COLORS['primary'], size=28)  # Changed from FRIGGATRISYSTEM
+        activity_icon = build_icon_label(FluentIcon.SYNC, COLORS['primary'], size=24)
         activity_header_layout.addWidget(activity_icon)
         
-        activity_title = SubtitleLabel("Live Build Activity")
+        activity_title = SubtitleLabel("Build Activity")
         activity_title.setStyleSheet(f"color: {COLORS['text_primary']}; font-weight: 600;")
         activity_header_layout.addWidget(activity_title)
-        
-        # Live indicator
-        self.live_indicator = QLabel()
-        self.live_indicator.setText("● LIVE")
-        self.live_indicator.setStyleSheet(f"""
-            QLabel {{
-                color: {COLORS['error']};
-                font-weight: bold;
-                font-size: 11px;
-                padding: 4px 8px;
-                background-color: rgba(232, 17, 35, 0.1);
-                border-radius: 4px;
-            }}
-        """)
-        activity_header_layout.addWidget(self.live_indicator)
-        
         activity_header_layout.addStretch()
         activity_card_layout.addLayout(activity_header_layout)
-        
-        activity_description = BodyLabel("Real-time updates of the build process with detailed progress information")
-        activity_description.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 13px;")
-        activity_card_layout.addWidget(activity_description)
         
         # Activity log area - scrollable container for log entries
         self.activity_log_container = QWidget()
@@ -345,8 +226,8 @@ class BuildPage(ScrollArea):
         activity_scroll = ScrollArea()
         activity_scroll.setWidget(self.activity_log_container)
         activity_scroll.setWidgetResizable(True)
-        activity_scroll.setMinimumHeight(300)
-        activity_scroll.setMaximumHeight(500)
+        activity_scroll.setMinimumHeight(250)
+        activity_scroll.setMaximumHeight(400)
         activity_scroll.setStyleSheet(f"""
             ScrollArea {{
                 background-color: rgba(0, 0, 0, 0.02);
@@ -960,17 +841,6 @@ class BuildPage(ScrollArea):
         
         content_widget.layout().addWidget(codec_widget)
         self.codec_config_card = codec_widget
-    
-    def update_stats(self):
-        """Update build statistics display"""
-        if self.build_start_time:
-            elapsed = (datetime.now() - self.build_start_time).total_seconds()
-            mins = int(elapsed // 60)
-            secs = int(elapsed % 60)
-            if mins > 0:
-                self.elapsed_time_label.setText(f"{mins}m {secs}s")
-            else:
-                self.elapsed_time_label.setText(f"{secs}s")
 
     def start_build(self):
         """Start building EFI with enhanced UI feedback"""
@@ -1002,23 +872,12 @@ class BuildPage(ScrollArea):
         self.progress_label.setText("Preparing to build...")
         self.progress_label.setStyleSheet(f"color: {COLORS['primary']};")
         
-        # Show statistics and activity cards
-        self.stats_card.setVisible(True)
+        # Show activity card
         self.activity_card.setVisible(True)
         self.classic_log_card.setVisible(True)
         
-        # Reset statistics
+        # Track build start time
         self.build_start_time = datetime.now()
-        self.files_count_label.setText("0")
-        self.current_phase_label.setText("Preparing")
-        self.elapsed_time_label.setText("0s")
-        
-        # Start stats timer
-        if self.stats_timer:
-            self.stats_timer.stop()
-        self.stats_timer = QTimer()
-        self.stats_timer.timeout.connect(self.update_stats)
-        self.stats_timer.start(1000)  # Update every second
         
         # Clear previous log entries
         for entry in self.log_entries:
@@ -1141,20 +1000,12 @@ class BuildPage(ScrollArea):
         self.build_in_progress = False
         self.build_successful = success
         
-        # Stop stats timer
-        if self.stats_timer:
-            self.stats_timer.stop()
-            self.update_stats()  # One final update
-        
         if success:
             # Success state
             self.update_status_icon("success")
             self.progress_label.setText("✓ Build completed successfully!")
             self.progress_label.setStyleSheet(f"color: {COLORS['success']};")
             self.progress_bar.setValue(100)
-            
-            # Update phase
-            self.current_phase_label.setText("Complete")
             
             # Add success log entries
             self.add_log_entry("Build completed successfully!", "success", FluentIcon.COMPLETED)
@@ -1197,9 +1048,6 @@ class BuildPage(ScrollArea):
             self.update_status_icon("error")
             self.progress_label.setText("✗ Build failed - see log for details")
             self.progress_label.setStyleSheet(f"color: {COLORS['error']};")
-            
-            # Update phase
-            self.current_phase_label.setText("Failed")
             
             # Add error log entry
             self.add_log_entry("Build failed - check details in log", "error", FluentIcon.CLOSE)

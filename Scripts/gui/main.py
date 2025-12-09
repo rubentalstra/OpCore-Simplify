@@ -984,11 +984,6 @@ class OpCoreGUI(FluentWindow):
             elif status == 'processing':
                 self.progress_label.setText(
                     f"✓ Processing ({current}/{total}): {product_name}")
-        
-        # Update build page statistics
-        if hasattr(self, 'buildPage') and self.buildPage.build_in_progress:
-            self.buildPage.files_count_label.setText(str(current))
-            self.buildPage.current_phase_label.setText("Gathering Files")
 
         # Enhanced logging with better structure
         if status == 'complete':
@@ -1089,11 +1084,6 @@ class OpCoreGUI(FluentWindow):
                 # Add step counter for better context
                 step_counter = f"Step {current_step_index + 1}/{len(steps)}"
                 self.progress_label.setText(f"⚙ {step_counter}: {step_text}...")
-        
-        # Update build page statistics
-        if hasattr(self, 'buildPage') and self.buildPage.build_in_progress:
-            if "Building" in title:
-                self.buildPage.current_phase_label.setText("Building EFI")
                 
         # Enhanced logging with better structure
         if done:
