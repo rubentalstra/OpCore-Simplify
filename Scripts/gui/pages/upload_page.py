@@ -107,39 +107,56 @@ class UploadPage(QWidget):
 
     def select_report(self):
         """Select hardware report file."""
-        file_path = self.controller.select_hardware_report_gui()
-        if not file_path:
-            return
-        
-        # Validate and load report
-        is_valid, errors, warnings, data = self.controller.ocpe.v.validate_report(file_path)
+        try:
+            file_path = self.controller.select_hardware_report_gui()
+            if not file_path:
+                return
+            
+            # Validate and load report
+            is_valid, errors, warnings, data = self.controller.ocpe.v.validate_report(file_path)
 
-        # Show validation warnings if any, but don't block loading
-        if warnings:
-            InfoBar.warning(
-                title='Report Warnings',
-                content=f'{len(warnings)} warning(s) found in the report. The report will still be loaded.',
+            # Show validation warnings if any, but don't block loading
+            if warnings:
+                InfoBar.warning(
+                    title='Report Warnings',
+                    content=f'{len(warnings)} warning(s) found in the report. The report will still be loaded.',
+                    orient=Qt.Orientation.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP_RIGHT,
+                    duration=5000,
+                    parent=self
+                )
+            
+            # Show validation errors if any, but still try to load
+            if errors:
+                InfoBar.warning(
+                    title='Report Validation Issues',
+                    content=f'{len(errors)} validation issue(s) found. The report will still be loaded.',
+                    orient=Qt.Orientation.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP_RIGHT,
+                    duration=7000,
+                    parent=self
+                )
+
+            # Always load the report, even if there are validation issues
+            self.controller.load_hardware_report(file_path, data)
+            
+        except Exception as e:
+            # Catch any exceptions to prevent Qt from crashing
+            import traceback
+            print(f"Error in select_report: {e}")
+            traceback.print_exc()
+            
+            InfoBar.error(
+                title='Error',
+                content=f'Failed to load report: {str(e)}',
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP_RIGHT,
-                duration=5000,
+                duration=10000,
                 parent=self
             )
-        
-        # Show validation errors if any, but still try to load
-        if errors:
-            InfoBar.warning(
-                title='Report Validation Issues',
-                content=f'{len(errors)} validation issue(s) found. The report will still be loaded.',
-                orient=Qt.Orientation.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP_RIGHT,
-                duration=7000,
-                parent=self
-            )
-
-        # Always load the report, even if there are validation issues
-        self.controller.load_hardware_report(file_path, data)
 
     def export_report(self):
         """Export hardware report."""
