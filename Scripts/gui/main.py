@@ -675,6 +675,7 @@ class OpCoreGUI(FluentWindow):
         
         except CompatibilityError as e:
             # Handle compatibility errors gracefully in GUI mode
+            # Keep the hardware report data loaded, but show the compatibility issue
             InfoBar.error(
                 title='Hardware Compatibility Issue',
                 content=str(e),
@@ -684,12 +685,18 @@ class OpCoreGUI(FluentWindow):
                 duration=10000,
                 parent=self
             )
-            # Reset to previous state
-            self.hardware_report_path = "Not selected"
-            self.hardware_report_data = None
-            self.hardware_report = None
+            
+            # Keep the data loaded but mark it as having compatibility issues
+            # Set hardware_report to the raw data so it can still be viewed
+            self.hardware_report = data
+            self.native_macos_version = None
+            self.ocl_patched_macos_version = None
+            
+            # Update UI to show the loaded data
             self.uploadPage.update_status()
-            self.update_status("Hardware report has compatibility issues", 'error')
+            self.compatibilityPage.update_display()
+            
+            self.update_status("Hardware report loaded with compatibility issues", 'error')
 
     def auto_select_macos_version(self):
         """Auto-select recommended macOS version"""
