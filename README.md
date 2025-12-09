@@ -36,6 +36,20 @@
 >
 > Our tool does not guarantee a successful installation in the first attempt, but it should help you get started.
 
+## 🎨 **Modern GUI with qfluentwidgets**
+
+OpCore Simplify features a beautiful, modern graphical user interface built with [qfluentwidgets](https://qfluentwidgets.com), implementing Microsoft's Fluent Design System:
+
+- ✨ Modern, intuitive interface with smooth animations
+- 🎨 Beautiful UI components following Fluent Design principles
+- 🌓 Light/dark theme support
+- 📱 Responsive layout that works on various screen sizes
+- 🖥️ Cross-platform compatibility (Windows, macOS, Linux)
+- 💨 Fast and responsive with lazy loading
+- 🔧 Built on PyQt6 for stability and performance
+
+The GUI provides an easy-to-follow step-by-step wizard while still allowing CLI mode for advanced users or automation.
+
 ## ✨ **Features**
 
 1. **Comprehensive Hardware and macOS Support**  
