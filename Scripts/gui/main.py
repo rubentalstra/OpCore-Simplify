@@ -177,6 +177,9 @@ class OpCoreGUI(FluentWindow):
         self.smbios_state = SMBIOSState()
         self.build_state = BuildState()
         
+        # Compatibility error message (if any)
+        self.compatibility_error_message = None
+        
         # Backward compatibility properties (delegated to state objects)
         # These will be removed in future versions
         
@@ -658,6 +661,9 @@ class OpCoreGUI(FluentWindow):
             data = self.ocpe.u.read_file(path)
 
         self.hardware_report_data = data
+        
+        # Clear any previous compatibility error
+        self.compatibility_error_message = None
 
         try:
             # Run compatibility check
@@ -675,16 +681,8 @@ class OpCoreGUI(FluentWindow):
         
         except CompatibilityError as e:
             # Handle compatibility errors gracefully in GUI mode
-            # Keep the hardware report data loaded, but show the compatibility issue
-            InfoBar.error(
-                title='Hardware Compatibility Issue',
-                content=str(e),
-                orient=Qt.Orientation.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP_RIGHT,
-                duration=10000,
-                parent=self
-            )
+            # Keep the hardware report data loaded, but store the compatibility error
+            self.compatibility_error_message = str(e)
             
             # Keep the data loaded but mark it as having compatibility issues
             # Set hardware_report to the raw data so it can still be viewed
@@ -692,7 +690,7 @@ class OpCoreGUI(FluentWindow):
             self.native_macos_version = None
             self.ocl_patched_macos_version = None
             
-            # Update UI to show the loaded data
+            # Update UI to show the loaded data with error widget
             self.uploadPage.update_status()
             self.compatibilityPage.update_display()
             

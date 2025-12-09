@@ -9,7 +9,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from qfluentwidgets import (
     SubtitleLabel, BodyLabel, ScrollArea, FluentIcon,
-    GroupHeaderCardWidget, StrongBodyLabel
+    GroupHeaderCardWidget, StrongBodyLabel, CardWidget
 )
 
 from ..styles import COLORS, SPACING
@@ -210,6 +210,51 @@ class CompatibilityPage(ScrollArea):
 
         report = self.controller.hardware_report
         cards_added = 0  # Track if any cards were created
+        
+        # Show compatibility error widget if there's an error
+        if self.controller.compatibility_error_message:
+            error_card = CardWidget(self.scrollWidget)
+            error_card.setStyleSheet(f"""
+                CardWidget {{
+                    background-color: #FEF6F6;
+                    border: 1px solid #F1AEB5;
+                    border-radius: 8px;
+                }}
+            """)
+            
+            error_layout = QVBoxLayout(error_card)
+            error_layout.setContentsMargins(SPACING['large'], SPACING['large'],
+                                           SPACING['large'], SPACING['large'])
+            error_layout.setSpacing(SPACING['medium'])
+            
+            # Error header with icon
+            header_layout = QHBoxLayout()
+            header_layout.setSpacing(SPACING['medium'])
+            
+            error_icon = colored_icon(FluentIcon.CLOSE_PANE, "#DC3545")
+            header_layout.addWidget(error_icon)
+            
+            error_title = StrongBodyLabel("Hardware Compatibility Issue")
+            error_title.setStyleSheet("color: #DC3545; font-size: 14px;")
+            header_layout.addWidget(error_title)
+            header_layout.addStretch()
+            
+            error_layout.addLayout(header_layout)
+            
+            # Error message
+            error_message = BodyLabel(self.controller.compatibility_error_message)
+            error_message.setWordWrap(True)
+            error_message.setStyleSheet("color: #721C24; font-size: 13px; line-height: 1.5;")
+            error_layout.addWidget(error_message)
+            
+            # Info note
+            info_note = BodyLabel("The hardware report has been loaded and you can view the details below, but this configuration may not support macOS.")
+            info_note.setWordWrap(True)
+            info_note.setStyleSheet("color: #856404; font-size: 12px; font-style: italic; margin-top: 8px;")
+            error_layout.addWidget(info_note)
+            
+            self.contentLayout.addWidget(error_card)
+            cards_added += 1
 
         # CPU Card
         if 'CPU' in report:
