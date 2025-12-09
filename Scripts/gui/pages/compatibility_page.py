@@ -231,8 +231,11 @@ class CompatibilityPage(ScrollArea):
             header_layout = QHBoxLayout()
             header_layout.setSpacing(SPACING['medium'])
             
-            error_icon = colored_icon(FluentIcon.CLOSE, "#DC3545")
-            header_layout.addWidget(error_icon)
+            # Create icon label (FluentIcon must be converted to QLabel with pixmap)
+            error_icon_colored = colored_icon(FluentIcon.CLOSE, "#DC3545")
+            error_icon_label = QLabel()
+            error_icon_label.setPixmap(error_icon_colored.icon().pixmap(20, 20))
+            header_layout.addWidget(error_icon_label)
             
             error_title = StrongBodyLabel("Hardware Compatibility Issue")
             error_title.setStyleSheet("color: #DC3545; font-size: 14px;")
