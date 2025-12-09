@@ -695,6 +695,30 @@ class OpCoreGUI(FluentWindow):
             self.compatibilityPage.update_display()
             
             self.update_status("Hardware report loaded with compatibility issues", 'error')
+        
+        except Exception as e:
+            # Catch any other unexpected exceptions
+            import traceback
+            print(f"Unexpected error in load_hardware_report: {e}")
+            traceback.print_exc()
+            
+            InfoBar.error(
+                title='Error Loading Report',
+                content=f'An unexpected error occurred: {str(e)}',
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP_RIGHT,
+                duration=10000,
+                parent=self
+            )
+            
+            # Reset state
+            self.hardware_report_path = "Not selected"
+            self.hardware_report_data = None
+            self.hardware_report = None
+            self.compatibility_error_message = None
+            self.uploadPage.update_status()
+            self.update_status("Failed to load hardware report", 'error')
 
     def auto_select_macos_version(self):
         """Auto-select recommended macOS version"""

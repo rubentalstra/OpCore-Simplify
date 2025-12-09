@@ -69,7 +69,7 @@ class CompatibilityChecker:
             print("")
             
             # In GUI mode, raise an exception instead of exiting
-            if self.utils.gui_callback:
+            if self.utils.gui_callback is not None and callable(self.utils.gui_callback):
                 raise CompatibilityError(error_msg)
             
             self.utils.request_input(error_msg, gui_type='info')
@@ -88,7 +88,7 @@ class CompatibilityChecker:
             print("")
             
             # In GUI mode, raise an exception instead of exiting
-            if self.utils.gui_callback:
+            if self.utils.gui_callback is not None and callable(self.utils.gui_callback):
                 raise CompatibilityError(error_msg)
             
             self.utils.request_input(error_msg, gui_type='info')
@@ -214,7 +214,7 @@ class CompatibilityChecker:
             print("")
             
             # In GUI mode, raise an exception instead of exiting
-            if self.utils.gui_callback:
+            if self.utils.gui_callback is not None and callable(self.utils.gui_callback):
                 raise CompatibilityError(error_msg)
             
             self.utils.request_input(error_msg, gui_type='info')
@@ -314,7 +314,7 @@ class CompatibilityChecker:
             print("")
             
             # In GUI mode, raise an exception instead of exiting
-            if self.utils.gui_callback:
+            if self.utils.gui_callback is not None and callable(self.utils.gui_callback):
                 raise CompatibilityError(error_msg)
             
             self.utils.request_input(error_msg, gui_type='info')
@@ -338,7 +338,7 @@ class CompatibilityChecker:
                 print("")
                 
                 # In GUI mode, raise an exception instead of exiting
-                if self.utils.gui_callback:
+                if self.utils.gui_callback is not None and callable(self.utils.gui_callback):
                     raise CompatibilityError(error_msg)
                 
                 self.utils.request_input(error_msg, gui_type='info')
@@ -360,7 +360,7 @@ class CompatibilityChecker:
             print("")
             
             # In GUI mode, raise an exception instead of exiting
-            if self.utils.gui_callback:
+            if self.utils.gui_callback is not None and callable(self.utils.gui_callback):
                 raise CompatibilityError(error_msg)
             
             self.utils.request_input(error_msg, gui_type='info')
