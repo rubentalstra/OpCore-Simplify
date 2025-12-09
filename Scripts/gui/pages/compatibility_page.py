@@ -231,7 +231,7 @@ class CompatibilityPage(ScrollArea):
             header_layout = QHBoxLayout()
             header_layout.setSpacing(SPACING['medium'])
             
-            error_icon = colored_icon(FluentIcon.CLOSE_PANE, "#DC3545")
+            error_icon = colored_icon(FluentIcon.CLOSE, "#DC3545")
             header_layout.addWidget(error_icon)
             
             error_title = StrongBodyLabel("Hardware Compatibility Issue")
